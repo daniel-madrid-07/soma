@@ -26,7 +26,7 @@
   <div class="masthead">
     <div class="kicker">Malla real · física · visión</div>
     <h1>humano real,<br>mundo real</h1>
-    <p>Un humano rigged camina por el suelo hacia una baliza que <em>ve</em>. Piernas y brazos los mueve la física (músculos + péndulos); el rumbo, la visión. La piel es real; nada es una animación grabada.</p>
+    <p>Un humano rigged camina por el suelo hacia una baliza que <em>ve</em>. Piernas y brazos los mueve la física (actuadores + péndulos); el rumbo, la visión. La piel es real; nada es una animación grabada.</p>
   </div>
   <div class="readout">
     <div class="stat"><div class="n" id="rdist">—</div><div class="l">m · al objetivo</div></div>
@@ -173,7 +173,7 @@
       swing('legL',   flexAx.legL||X,   KNEE_SIGN, Math.max(0,-fr[1]));
       swing('upLegR', flexAx.upLegR||X, HIP_SIGN, fr[2]);
       swing('legR',   flexAx.legR||X,   KNEE_SIGN, Math.max(0,-fr[3]));
-      // Brazos: hombro SIMULADO por física (péndulo + músculos), en el mismo plano.
+      // Brazos: hombro SIMULADO por física (péndulo + actuadores), en el mismo plano.
       swing('armL', flexAx.armL||X, 1.0, fr[8]);
       swing('armR', flexAx.armR||X, 1.0, fr[9]);
       const px=fr[4], pz=-fr[5];

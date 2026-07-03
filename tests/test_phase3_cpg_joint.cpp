@@ -1,17 +1,17 @@
 // SOMA — Test FASE 3 (CPG→articulación): movimiento rítmico EMERGENTE.
 //
-// El CPG conduce dos músculos antagonistas (flexor/extensor) en antifase. El
+// El CPG conduce dos actuadores antagonistas (flexor/extensor) en antifase. El
 // resultado es una articulación que oscila RÍTMICAMENTE dentro de su rango
-// anatómico — sin animación, sin keyframes: el ritmo nace de la dinámica neuronal,
-// la fuerza del modelo Hill, y el rango de los límites articulares. Es el ladrillo
+// de partes — sin animación, sin keyframes: el ritmo nace de la dinámica nodol,
+// la fuerza del modelo no lineal, y el rango de los límites articulares. Es el ladrillo
 // de la locomoción (Fase 6). Con el CPG apagado, la articulación se queda quieta.
-#include "anatomy/muscle/hill_muscle.hpp"
-#include "nervous/spinal/cpg.hpp"
+#include "actuators/spring/spring_actuator.hpp"
+#include "control/pattern/cpg.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/constraints/joint_limit.hpp"
 #include "physics/forces/gravity.hpp"
 #include "physics/rigid/body.hpp"
-#include "sensory/proprioception/joint_sense.hpp"
+#include "sensors/joints/joint_sense.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -21,8 +21,8 @@ using namespace soma;
 using math::Real;
 using math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 constexpr Vec3 kGravity{0, 0, -9.80665};
 
@@ -30,10 +30,10 @@ struct Joint {
     RigidBody anchor = RigidBody::make_static(Vec3{0, 0, 0});
     RigidBody bone = RigidBody::make_box(1.0, Vec3{0.5, 0.05, 0.05}, Vec3{0.5, 0, 0});
     physics::BallJoint pin{Vec3{-0.5, 0, 0}, Vec3{0, 0, 0}, 0.2};
-    physics::AngleLimit1D limit;   // rango anatómico
-    HillMuscle flexor, extensor;
-    MuscleAttachment flexor_at, extensor_at;
-    sensory::JointAngleSense sense;
+    physics::AngleLimit1D limit;   // rango de partes
+    SpringActuator flexor, extensor;
+    AttachPoint flexor_at, extensor_at;
+    sensors::JointAngleSense sense;
 
     Joint() {
         flexor.f_max = extensor.f_max = 300;
@@ -48,8 +48,8 @@ struct Joint {
         flexor.activation = clamp01(0.4 * flex_drive);
         extensor.activation = clamp01(0.4 * ext_drive);
         physics::apply_gravity(bone, kGravity);
-        anatomy::apply_muscle(flexor, flexor_at, anchor, bone);
-        anatomy::apply_muscle(extensor, extensor_at, anchor, bone);
+        actuators::apply_actuator(flexor, flexor_at, anchor, bone);
+        actuators::apply_actuator(extensor, extensor_at, anchor, bone);
         bone.integrate_velocity(dt);
         for (int it = 0; it < 12; ++it) {
             physics::solve_ball(bone, anchor, pin, dt);
@@ -64,7 +64,7 @@ struct Joint {
 // del sentido del ángulo en los últimos 4 s (medida de ritmo).
 static void run(Real tonic, Real& amplitude, int& reversals) {
     Joint j;
-    nervous::MatsuokaCPG cpg;
+    control::MatsuokaCPG cpg;
     cpg.s = tonic;
     Real dt = 1.0 / 1000.0;
     Real amin = 1e9, amax = -1e9, prev = 0, prev_dir = 0;

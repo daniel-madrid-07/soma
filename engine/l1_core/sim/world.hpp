@@ -1,5 +1,5 @@
 // SOMA — L1 — World: contenedor de todo el estado compartido de la simulación.
-// Un World = un organismo + su entorno. Los sistemas operan sobre él vía Context.
+// Un World = un objecto + su entorno. Los sistemas operan sobre él vía Context.
 #pragma once
 
 #include "core/events.hpp"

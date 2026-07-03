@@ -6,8 +6,8 @@ GXX="${GXX:-/c/msys64/ucrt64/bin/g++}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="${1:-apps/interactive.cpp}"
 OUT="${2:-$ROOT/soma-interactive.exe}"
-INC=(-Iengine/l0_foundation -Iengine/l1_core -Iengine/l2_physics -Iengine/l3_anatomy
-     -Iengine/l4_physiology -Iengine/l5_nervous -Iengine/l6_sensory -Iengine/l7_brain
+INC=(-Iengine/l0_foundation -Iengine/l1_core -Iengine/l2_physics -Iengine/l3_actuators
+     -Iengine/l4_systems -Iengine/l5_control -Iengine/l6_sensors -Iengine/l7_agent
      -Iengine/l8_render -Iengine/l9_tools -Itests)
 cd "$ROOT" || exit 2
 for a in 1 2 3; do

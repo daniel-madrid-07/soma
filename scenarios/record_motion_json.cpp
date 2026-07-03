@@ -1,8 +1,8 @@
 // SOMA — exporta el movimiento de la física a render/motion.json (para Blender).
 // Mismo contenido que record_real (ángulos + pose de mundo + brazos) en JSON puro.
 #include "arms.hpp"
-#include "brain/navigation/steering.hpp"
-#include "sensory/vision/eye.hpp"
+#include "agent/navigation/steering.hpp"
+#include "sensors/vision/camera.hpp"
 #include "support/biped.hpp"
 
 #include <cmath>
@@ -14,12 +14,12 @@ using soma::math::Vec3;
 
 int main() {
     scenario::Biped b;
-    brain::WalkIntention intent; intent.walk = true; intent.effort = 1.0;
-    nervous::CoupledOscillators cpg(2);
+    agent::WalkIntention intent; intent.walk = true; intent.effort = 1.0;
+    control::CoupledOscillators cpg(2);
     cpg.omega = 2.0 * math::Pi * intent.cadence_hz();
     cpg.offset[1] = math::Pi; cpg.phase[0] = 0; cpg.phase[1] = math::Pi;
-    sensory::Eye eye; eye.retina_half = 1.3;
-    brain::Steering steer;
+    sensors::Camera eye; eye.sensor_half = 1.3;
+    agent::Steering steer;
     scenario::ArmRig armL, armR;
     Vec3 target{7.0, 4.0, 0.0};
 
@@ -39,7 +39,7 @@ int main() {
         eye.pos = Vec3{X, Y, 1.5};
         eye.orient = math::Quat::from_axis_angle(Vec3{0, 0, 1}, theta);
         auto r = eye.project(Vec3{target.x, target.y, 1.5});
-        if (r.visible) theta += steer.turn_rate(brain::Steering::bearing_from_retina(r.u, eye.focal)) * dt;
+        if (r.visible) theta += steer.turn_rate(agent::Steering::bearing_from_sensor(r.u, eye.focal)) * dt;
         if (std::hypot(target.x - X, target.y - Y) < 0.5) { if (++hold > 300) break; }
         if (i % 33) continue;
         if (!first) std::fprintf(f, ",\n"); first = false;

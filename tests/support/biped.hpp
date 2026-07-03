@@ -1,11 +1,11 @@
 // SOMA — soporte de tests: bípedo caminante (rig de soporte de peso).
 // Reutilizado por test_phase6_locomotion y test_gait_benchmark.
-// Ensambla intención → CPG → control PD → músculos Hill → piernas → contacto suelo.
+// Ensambla intención → CPG → control PD → actuadores no lineal → piernas → contacto suelo.
 #pragma once
 
-#include "anatomy/muscle/hill_muscle.hpp"
-#include "brain/intention/intention.hpp"
-#include "nervous/spinal/coupled_cpg.hpp"
+#include "actuators/spring/spring_actuator.hpp"
+#include "agent/intention/intention.hpp"
+#include "control/pattern/coupled_cpg.hpp"
 #include "physics/collision/ground.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/constraints/joint_limit.hpp"
@@ -21,20 +21,20 @@ namespace soma::scenario {
 using math::Real;
 using math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 constexpr Vec3 kGravity{0, 0, -9.80665};
 constexpr Real kZ0 = 0.96;          // altura fija del torso (rig de soporte de peso)
 constexpr Real kHipH = kZ0 - 0.15;  // altura de la cadera
 
-struct Musc { HillMuscle hill; MuscleAttachment at; RigidBody* a; RigidBody* b; };
+struct Act { SpringActuator act; AttachPoint at; RigidBody* a; RigidBody* b; };
 
 struct Leg {
     RigidBody thigh, shank;
     physics::BallJoint hip_j, knee_j;
     physics::AngleLimit1D hip_lim, knee_lim;
-    std::vector<Musc> m;
+    std::vector<Act> m;
 };
 
 struct Biped {
@@ -62,13 +62,13 @@ struct Biped {
             addM(L, &torso, &L.thigh, {-0.2, 0, -0.05}, {0, 0, 0.15});
             addM(L, &L.thigh, &L.shank, {0.15, 0, -0.15}, {0, 0, 0.15});
             addM(L, &L.thigh, &L.shank, {-0.15, 0, -0.15}, {0, 0, 0.15});
-            L.m[0].hill.l_opt = L.m[1].hill.l_opt = 0.25;
-            L.m[2].hill.l_opt = L.m[3].hill.l_opt = 0.18;
-            for (int i = 0; i < 4; ++i) L.m[i].hill.f_max = (i < 2) ? 500 : 350;
+            L.m[0].act.l_opt = L.m[1].act.l_opt = 0.25;
+            L.m[2].act.l_opt = L.m[3].act.l_opt = 0.18;
+            for (int i = 0; i < 4; ++i) L.m[i].act.f_max = (i < 2) ? 500 : 350;
         }
     }
     void addM(Leg& L, RigidBody* a, RigidBody* b, Vec3 o, Vec3 i) {
-        Musc mm; mm.a = a; mm.b = b; mm.at.origin_local = o; mm.at.insertion_local = i;
+        Act mm; mm.a = a; mm.b = b; mm.at.origin_local = o; mm.at.insertion_local = i;
         L.m.push_back(mm);
     }
     static Real c01(Real x) { return x > 1 ? 1 : (x < 0 ? 0 : x); }
@@ -84,11 +84,11 @@ struct Biped {
 
     void pd(Leg& L, int fa, int fb, Real target, Real angle, Real rate, Real kp, Real kd) {
         Real u = kp * (target - angle) - kd * rate;
-        L.m[fa].hill.activation = c01((u > 0 ? u : 0) + 0.03);
-        L.m[fb].hill.activation = c01((u < 0 ? -u : 0) + 0.03);
+        L.m[fa].act.activation = c01((u > 0 ? u : 0) + 0.03);
+        L.m[fb].act.activation = c01((u < 0 ? -u : 0) + 0.03);
     }
 
-    void step(Real dt, nervous::CoupledOscillators& cpg, bool walking) {
+    void step(Real dt, control::CoupledOscillators& cpg, bool walking) {
         for (int s = 0; s < 2; ++s) {
             Leg& L = legs[s];
             Real phi = cpg.phase[s];
@@ -96,11 +96,11 @@ struct Biped {
             Real knee_t = walking ? -A_knee * std::max(0.0, -std::sin(phi)) : 0.0;
             Real ha = hip_angle(L), ka = knee_angle(L);
             Real hr = L.thigh.omega.y, kr = L.shank.omega.y - L.thigh.omega.y;
-            pd(L, 1, 0, hip_t, ha, hr, 6.0, 1.0);
-            pd(L, 3, 2, knee_t, ka, kr, 6.0, 0.8);
+            pd(L, 1, 0, hip_t, ha, hr, 18.0, 2.5);
+            pd(L, 3, 2, knee_t, ka, kr, 18.0, 2.0);
             physics::apply_gravity(L.thigh, kGravity);
             physics::apply_gravity(L.shank, kGravity);
-            for (auto& mm : L.m) anatomy::apply_muscle(mm.hill, mm.at, *mm.a, *mm.b);
+            for (auto& mm : L.m) actuators::apply_actuator(mm.act, mm.at, *mm.a, *mm.b);
             grf[s] = physics::resolve_ground_point(L.shank, foot(L), foot_r, ground);
         }
         torso.integrate_velocity(dt);
@@ -133,8 +133,8 @@ struct GaitTrace {
 // Simula 'secs' segundos. Devuelve desplazamiento neto del torso; llena 'trace' si != null.
 inline Real simulate(bool walking, Real secs = 8.0, GaitTrace* trace = nullptr) {
     Biped b;
-    brain::WalkIntention intent; intent.walk = walking; intent.effort = 1.0;
-    nervous::CoupledOscillators cpg(2);
+    agent::WalkIntention intent; intent.walk = walking; intent.effort = 1.0;
+    control::CoupledOscillators cpg(2);
     cpg.omega = 2.0 * math::Pi * (walking ? intent.cadence_hz() : 1.0);
     cpg.offset[1] = math::Pi;
     cpg.phase[0] = 0.0; cpg.phase[1] = math::Pi;

@@ -1,19 +1,19 @@
-// SOMA — Test FASE 3: control motor. Los músculos MANTIENEN la postura.
+// SOMA — Test FASE 3: control motor. Los actuadores MANTIENEN la postura.
 //
-// Una articulación (tipo codo) con dos músculos ANTAGONISTAS (flexor/extensor).
-// Un controlador emite ACTIVACIÓN (no par); la fuerza sale del modelo Hill.
-// Un reflejo de estiramiento añade estabilidad. Se verifica:
+// Una articulación (tipo codo) con dos actuadores ANTAGONISTAS (flexor/extensor).
+// Un controlador emite ACTIVACIÓN (no par); la fuerza sale del modelo no lineal.
+// Un realimentación de estiramiento añade estabilidad. Se verifica:
 //   1. mantiene un ángulo objetivo contra la gravedad,
 //   2. alcanza distintos objetivos comandados (posicionamiento activo),
 //   3. tras un EMPUJÓN, vuelve solo al objetivo (rechazo de perturbación).
 // Todo por el lazo sensor->control->activación->fuerza->movimiento. Cero animación.
-#include "anatomy/muscle/hill_muscle.hpp"
-#include "brain/motor/joint_controller.hpp"
-#include "nervous/spinal/stretch_reflex.hpp"
+#include "actuators/spring/spring_actuator.hpp"
+#include "agent/motor/joint_controller.hpp"
+#include "control/pattern/feedback.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/forces/gravity.hpp"
 #include "physics/rigid/body.hpp"
-#include "sensory/proprioception/joint_sense.hpp"
+#include "sensors/joints/joint_sense.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -24,8 +24,8 @@ using namespace soma;
 using math::Real;
 using math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 constexpr Vec3 kGravity{0, 0, -9.80665};
 
@@ -34,14 +34,14 @@ struct Arm {
     RigidBody bone = RigidBody::make_box(1.0, Vec3{0.5, 0.05, 0.05}, Vec3{0.5, 0, 0});
     physics::BallJoint pin{Vec3{-0.5, 0, 0}, Vec3{0, 0, 0}, 0.2};
 
-    HillMuscle flexor, extensor;
-    MuscleAttachment flexor_at, extensor_at;
-    nervous::StretchReflex flexor_reflex, extensor_reflex;
-    sensory::JointAngleSense sense;
-    brain::JointController ctrl;
+    SpringActuator flexor, extensor;
+    AttachPoint flexor_at, extensor_at;
+    control::FeedbackLoop flexor_reflex, extensor_reflex;
+    sensors::JointAngleSense sense;
+    agent::JointController ctrl;
 
     Arm() {
-        for (HillMuscle* m : {&flexor, &extensor}) {
+        for (SpringActuator* m : {&flexor, &extensor}) {
             m->f_max = 400; m->l_opt = 0.58; m->v_max = 10;
         }
         flexor_at.origin_local = Vec3{0, 0, 0.5};      // por encima => flexiona (−θ)
@@ -57,15 +57,15 @@ struct Arm {
         Real angle = sense.angle(bone);
         Real rate = sense.rate(bone);
         auto cmd = ctrl.command(angle, rate);
-        // Activación = orden voluntaria + reflejo local (clamp a 1).
-        flexor.activation = brain::JointController::clamp01(
+        // Activación = orden voluntaria + realimentación local (clamp a 1).
+        flexor.activation = agent::JointController::clamp01(
             cmd.flexor + flexor_reflex.activation(flexor.length, flexor.velocity));
-        extensor.activation = brain::JointController::clamp01(
+        extensor.activation = agent::JointController::clamp01(
             cmd.extensor + extensor_reflex.activation(extensor.length, extensor.velocity));
 
         physics::apply_gravity(bone, kGravity);
-        anatomy::apply_muscle(flexor, flexor_at, anchor, bone);
-        anatomy::apply_muscle(extensor, extensor_at, anchor, bone);
+        actuators::apply_actuator(flexor, flexor_at, anchor, bone);
+        actuators::apply_actuator(extensor, extensor_at, anchor, bone);
         bone.integrate_velocity(dt);
         for (int it = 0; it < 12; ++it) physics::solve_ball(bone, anchor, pin, dt);
         bone.vel *= 0.999; bone.omega *= 0.999;

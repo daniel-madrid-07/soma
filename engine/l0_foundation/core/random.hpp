@@ -1,6 +1,6 @@
 // SOMA — L0 — RNG determinista. Invariante #4: misma semilla => mismo resultado.
 // splitmix64 para sembrar, xoshiro256** para generar. Sin std::random_device.
-// Usos: ruido neuronal, variabilidad de reclutamiento motor, jitter sensorial.
+// Usos: ruido nodol, variabilidad de reclutamiento motor, jitter sensorial.
 #pragma once
 
 #include "core/math/scalar.hpp"

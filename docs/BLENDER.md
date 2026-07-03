@@ -27,7 +27,7 @@ en una terminal, `blender --version` debe responder. Si no, dime la ruta del
 ### Opción A — MB-Lab (dentro de Blender)
 1. `N` para abrir el panel lateral → pestaña **MB-Lab**.
 2. **Create** un humano (elige tipo, p. ej. "Human Female/Male Caucasic"). Ajusta a gusto.
-3. **Finalize ▸ Finalize** (esto congela la malla con su esqueleto).
+3. **Finalize ▸ Finalize** (esto congela la malla con su armadura).
 4. Selecciona el personaje completo (malla + armature).
 5. `File ▸ Export ▸ glTF 2.0 (.glb)`. En las opciones de exportación:
    - Format: **glTF Binary (.glb)**
@@ -60,7 +60,7 @@ los saco con: `blender --background viewer/assets/human.glb --python tools/blend
 
 ## 4. (Lo hago yo) Render de vídeo fotorrealista (headless)
 
-Yo horneo el movimiento de la física de SOMA sobre el esqueleto del modelo y renderizo
+Yo horneo el movimiento de la física de SOMA sobre el armadura del modelo y renderizo
 un vídeo con luces y materiales, todo por línea de comandos (sin abrir Blender):
 
 ```

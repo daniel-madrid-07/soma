@@ -1,7 +1,7 @@
 // SOMA — app INTERACTIVA nativa. Corre el MOTOR C++ en tiempo real y tú mandas
 // las señales de INTENCIÓN con el teclado. No es un clip grabado ni una IA que
 // decide: eres tú quien expresa la intención; el cuerpo la ejecuta por la cadena
-// causal (intención → CPG → control → músculos Hill → huesos → suelo → avance).
+// causal (intención → CPG → control → actuadores no lineal → huesos → suelo → avance).
 //
 // Controles (mantén pulsado):
 //   W = intención de caminar     A / D = girar izquierda / derecha
@@ -27,10 +27,10 @@ static bool down(int vk) { return (GetAsyncKeyState(vk) & 0x8000) != 0; }
 
 int main() {
     scenario::Biped body;
-    nervous::CoupledOscillators cpg(2);
+    control::CoupledOscillators cpg(2);
     cpg.offset[1] = math::Pi;
     cpg.phase[0] = 0.0; cpg.phase[1] = math::Pi;   // piernas en antifase
-    brain::WalkIntention intent;
+    agent::WalkIntention intent;
 
     const Real dt = 1.0 / 1000.0;      // paso físico del motor (1 kHz)
     const int substeps = 16;            // 16 ms de simulación por frame
@@ -59,7 +59,7 @@ int main() {
         // La intención enciende el CPG y fija su cadencia. Nada más la toca.
         cpg.omega = 2.0 * math::Pi * (intent.walk ? intent.cadence_hz() : 1.0);
 
-        // --- El MOTOR ejecuta: CPG → control → músculos → física ---
+        // --- El MOTOR ejecuta: CPG → control → actuadores → física ---
         for (int i = 0; i < substeps; ++i) {
             if (intent.walk) cpg.step(dt);
             body.step(dt, cpg, intent.walk);

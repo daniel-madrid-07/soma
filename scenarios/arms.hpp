@@ -1,10 +1,10 @@
 // SOMA — brazo físico para la visualización. Un péndulo de hombro (húmero) articulado
-// a un anclaje, movido por un par de músculos Hill antagonistas bajo control PD (igual
+// a un anclaje, movido por un par de actuadores no lineal antagonistas bajo control PD (igual
 // patrón que la postura de Fase 3). El objetivo del hombro lo marca el CPG en contrafase
 // con la pierna homolateral → balanceo de brazos EMERGENTE, por física, no cosmético.
 #pragma once
 
-#include "anatomy/muscle/hill_muscle.hpp"
+#include "actuators/spring/spring_actuator.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/constraints/joint_limit.hpp"
 #include "physics/forces/gravity.hpp"
@@ -17,19 +17,19 @@ namespace soma::scenario {
 using soma::math::Real;
 using soma::math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 struct ArmRig {
     RigidBody anchor = RigidBody::make_static(Vec3{0, 0, 0});      // hombro (fijo)
     RigidBody upper  = RigidBody::make_box(0.8, Vec3{0.045, 0.045, 0.16}, Vec3{0, 0, -0.16});
     physics::BallJoint shoulder{Vec3{0, 0, 0.16}, Vec3{0, 0, 0}, 0.2};  // cabeza húmero ↔ hombro
     physics::AngleLimit1D lim;
-    HillMuscle front, back;                                        // antagonistas del hombro
-    MuscleAttachment front_at, back_at;
+    SpringActuator front, back;                                        // antagonistas del hombro
+    AttachPoint front_at, back_at;
 
     ArmRig() {
-        for (HillMuscle* m : {&front, &back}) { m->f_max = 120; m->l_opt = 0.18; }
+        for (SpringActuator* m : {&front, &back}) { m->f_max = 120; m->l_opt = 0.18; }
         front_at.origin_local = Vec3{0.14, 0, 0.04};  front_at.insertion_local = Vec3{0, 0, -0.06};
         back_at.origin_local  = Vec3{-0.14, 0, 0.04}; back_at.insertion_local  = Vec3{0, 0, -0.06};
         lim.axis = {0,1,0}; lim.ref = {0,0,-1}; lim.local_dir = {0,0,-1}; lim.lo = -1.2; lim.hi = 1.2;
@@ -46,8 +46,8 @@ struct ArmRig {
         back.activation  = c01((u > 0 ? u : 0) + 0.02);   // sube el ángulo (adelante)
         front.activation = c01((u < 0 ? -u : 0) + 0.02);
         physics::apply_gravity(upper, Vec3{0, 0, -9.80665});
-        anatomy::apply_muscle(front, front_at, anchor, upper);
-        anatomy::apply_muscle(back, back_at, anchor, upper);
+        actuators::apply_actuator(front, front_at, anchor, upper);
+        actuators::apply_actuator(back, back_at, anchor, upper);
         upper.integrate_velocity(dt);
         for (int it = 0; it < 12; ++it) {
             physics::solve_ball(upper, anchor, shoulder, dt);

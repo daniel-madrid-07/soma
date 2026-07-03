@@ -1,0 +1,89 @@
+<meta charset="utf-8">
+<title>Flechas</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    background: #0d0f12;
+    color: #e8e4da;
+    font-family: "Cascadia Code", Consolas, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2rem;
+  }
+  h1 {
+    font-size: 0.85rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #6b6f76;
+    font-weight: 400;
+  }
+  #seq {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    max-width: 60rem;
+    min-height: 5rem;
+    align-items: center;
+  }
+  #seq:empty::before {
+    content: "pulsa flechas…";
+    color: #3a3e45;
+    font-size: 1.4rem;
+  }
+  .key {
+    font-size: 3rem;
+    line-height: 1;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid #2a2e35;
+    border-radius: 6px;
+    background: #15181d;
+    color: #ffb347;
+    animation: pop 120ms ease-out;
+  }
+  @keyframes pop {
+    from { transform: scale(1.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+  #count { color: #6b6f76; font-size: 0.9rem; }
+  footer { color: #3a3e45; font-size: 0.8rem; letter-spacing: 0.1em; }
+</style>
+
+<h1>Secuencia de flechas</h1>
+<div id="seq"></div>
+<div id="count"></div>
+<footer>ESPACIO = reiniciar</footer>
+
+<script>
+  const seq = document.getElementById("seq");
+  const count = document.getElementById("count");
+  const arrows = {
+    ArrowLeft: "←",
+    ArrowRight: "→",
+    ArrowUp: "↑",
+    ArrowDown: "↓",
+  };
+  let n = 0;
+
+  addEventListener("keydown", (e) => {
+    if (arrows[e.key]) {
+      e.preventDefault();
+      const el = document.createElement("span");
+      el.className = "key";
+      el.textContent = arrows[e.key];
+      seq.appendChild(el);
+      count.textContent = ++n + " pulsaciones";
+      el.scrollIntoView({ block: "nearest" });
+    } else if (e.key === " ") {
+      e.preventDefault();
+      seq.innerHTML = "";
+      count.textContent = "";
+      n = 0;
+    }
+  });
+</script>

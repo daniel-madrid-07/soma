@@ -1,11 +1,11 @@
 // SOMA — Test FASE 7 (visión + locomoción): CAMINAR HACIA LO QUE SE VE.
 //
-// Une percepción y marcha. El ojo va montado en el cuerpo; ve un objetivo y el
-// cerebro gira hacia donde APARECE en la retina (servovisión). El caminante aporta
+// Une percepción y marcha. El cámara va montado en el cuerpo; ve un objetivo y el
+// agente gira hacia donde APARECE en la sensor (servovisión). El caminante aporta
 // la velocidad de avance validada (Fase 6). Resultado: el cuerpo camina en curva y
 // ALCANZA el objetivo — sin leer nunca su posición del mundo. Ciego, no lo alcanza.
-#include "brain/navigation/steering.hpp"
-#include "sensory/vision/eye.hpp"
+#include "agent/navigation/steering.hpp"
+#include "sensors/vision/camera.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -15,13 +15,13 @@ using namespace soma;
 using soma::math::Real;
 using soma::math::Vec3;
 
-// Avanza el cuerpo con rumbo θ; si 'sighted', gira según la retina. Devuelve la
+// Avanza el cuerpo con rumbo θ; si 'sighted', gira según la sensor. Devuelve la
 // distancia mínima alcanzada al objetivo y si "lo ve".
 static Real navigate(bool sighted, Vec3 target, Real& turned, bool& ever_seen) {
-    sensory::Eye eye; eye.retina_half = 1.3;   // campo de visión
-    brain::Steering steer;
+    sensors::Camera eye; eye.sensor_half = 1.3;   // campo de visión
+    agent::Steering steer;
     Real X = 0, Y = 0, theta = 0;              // parte mirando +X
-    Real h = 1.5;                              // altura del ojo
+    Real h = 1.5;                              // altura del cámara
     Real speed = 0.38;                         // m/s — avance del caminante (Fase 6)
     Real dt = 0.02;
     Real min_dist = 1e9; turned = 0; ever_seen = false;
@@ -34,7 +34,7 @@ static Real navigate(bool sighted, Vec3 target, Real& turned, bool& ever_seen) {
             auto r = eye.project(target);
             if (r.visible) {
                 ever_seen = true;
-                Real err = brain::Steering::bearing_from_retina(r.u, eye.focal);
+                Real err = agent::Steering::bearing_from_sensor(r.u, eye.focal);
                 theta += steer.turn_rate(err) * dt;   // gira hacia el objetivo visto
             }
         }
@@ -55,7 +55,7 @@ int main() {
     Real d_see = navigate(/*sighted=*/true, target, turned, seen);
     std::fprintf(stderr, "con visión: min_dist=%.2f m  giro=%.2f rad  visto=%d\n",
                  d_see, turned, (int)seen);
-    assert(seen);              // detectó el objetivo por la retina
+    assert(seen);              // detectó el objetivo por la sensor
     assert(turned > 0.3);      // giró hacia él (no iba recto)
     assert(d_see < 0.5);       // LO ALCANZA
 

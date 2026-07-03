@@ -16,7 +16,7 @@ core/math
   ├─ quat              (rotaciones)
   ├─ transform         (SE3, poses)
   ├─ tensor            (campos, para FEM/CFD)
-  ├─ spline            (rutas musculares, superficies de wrapping)
+  ├─ spline            (rutas de actuadores, superficies de wrapping)
   ├─ interp            (interpolación, zero-order hold entre bandas)
   └─ random            (RNG determinista, distribuciones)
 core/units             (SI, dimensional analysis, chequeo de unidades en compilación)
@@ -93,12 +93,12 @@ physics/rigid
   ├─ integrator
   └─ sleeping
 physics/articulated
-  ├─ featherstone       (dinámica en coordenadas reducidas para el esqueleto)
+  ├─ featherstone       (dinámica en coordenadas reducidas para el armadura)
   ├─ joint_dof
   └─ forward_dynamics
 physics/constraints
   ├─ joint_constraint   (esférica, bisagra, silla, pivote)
-  ├─ limit_constraint   (rango de movimiento anatómico)
+  ├─ limit_constraint   (rango de movimiento de partes)
   ├─ contact_constraint
   └─ friction
 physics/collision
@@ -109,22 +109,22 @@ physics/collision
 physics/softbody
   ├─ fem_linear
   ├─ fem_corotational   (grandes deformaciones)
-  ├─ fem_hyperelastic   (tejido biológico, Neo-Hookean/Ogden)
+  ├─ fem_hyperelastic   (tejido mecánico, Neo-Hookean/Ogden)
   ├─ pbd                (position-based dynamics, LOD tiempo real)
   ├─ xpbd
   ├─ mass_spring        (LOD simplificado)
   └─ contact_coupling   (soft ↔ rígido)
 physics/fluids
-  ├─ sph                (partículas, sangre/aire aproximado)
-  ├─ lumped             (compartimentos, Windkessel)
-  ├─ cfd_1d             (redes vasculares 1D)
+  ├─ sph                (partículas, fluido/aire aproximado)
+  ├─ lumped             (compartimentos, R–C)
+  ├─ cfd_1d             (redes de tubos 1D)
   ├─ cfd_3d             (Navier-Stokes, scientific)
   └─ diffusion          (gases, calor)
 physics/damage
   ├─ stress_field       (tensor de tensiones en huesos/tejido)
   ├─ fracture           (fractura ósea por umbral de tensión)
   ├─ fissure            (fisura, daño parcial)
-  ├─ tear               (desgarro en soft body / tendón / ligamento)
+  ├─ tear               (desgarro en soft body / tirante / tirante)
   └─ fatigue_damage     (acumulación por ciclos)
 physics/forces
   ├─ gravity
@@ -134,56 +134,56 @@ physics/forces
 
 ---
 
-## L3 — Anatomy / Structural
+## L3 — Structural / Structural
 
 ```
-anatomy/skeleton
+parts/skeleton
   ├─ bone               (entidad rígida: densidad, peso, geometría)
   ├─ bone_db            (los ~206 huesos reales desde Parameter DB)
   ├─ joint              (definición articular, DOF, cartílago)
   ├─ joint_limits       (rango de movimiento por articulación)
   ├─ ossification       (opcional: crecimiento/edad)
   └─ skeleton_assembly  (grafo completo hueso-articulación)
-anatomy/muscle
-  ├─ hill_muscle        (contráctil + elástico serie + elástico paralelo)
-  ├─ crossbridge        (Huxley, scientific LOD)
+parts/actuator
+  ├─ spring_actuator        (contráctil + elástico serie + elástico paralelo)
+  ├─ crossbridge        (, scientific LOD)
   ├─ torque_actuator    (LOD tiempo real)
   ├─ fiber              (tipos I/II, PCSA, longitud óptima)
-  ├─ activation         (dinámica de activación desde señal neuronal)
+  ├─ activation         (dinámica de activación desde señal nodol)
   ├─ force_length       (curva F-L)
   ├─ force_velocity     (curva F-V)
-  ├─ muscle_path        (origen, inserción, vía puntos)
-  ├─ wrapping           (músculo envuelve hueso/superficie)
+  ├─ actuator_path        (origen, inserción, vía puntos)
+  ├─ wrapping           (actuador envuelve hueso/superficie)
   ├─ moment_arm         (brazo de momento dinámico)
-  ├─ fatigue            (fatiga por consumo)
-  ├─ energy_cost        (ATP por contracción → L4)
-  └─ muscle_db          (los músculos reales)
-anatomy/tendon
+  ├─ fatigue            (desgaste por consumo)
+  ├─ energy_cost        (energía por contracción → L4)
+  └─ actuator_db          (los actuadores reales)
+parts/tendon
   ├─ tendon             (elástico en serie, transmite solo fuerza)
   ├─ tendon_rupture     (rotura por sobrecarga)
   └─ tendon_db
-anatomy/ligament
+parts/ligament
   ├─ ligament           (estabiliza articulación)
   ├─ sprain             (esguince, lesión parcial)
   ├─ ligament_tear
   └─ ligament_db
-anatomy/connective
+parts/binder
   ├─ fascia
   └─ cartilage
-anatomy/skin
+parts/skin
   ├─ skin_membrane      (FEM membrana sobre el cuerpo)
   ├─ stretch_compress
   ├─ impact_response
   ├─ layers             (epidermis/dermis)
   └─ wounds             (cortes, laceraciones → sangrado L4)
-anatomy/adipose
+parts/relleno
   ├─ fat_layer          (soft body subcutáneo)
   ├─ distribution       (peso, distribución por zona)
   └─ compression
-anatomy/organs
-  ├─ organ_body         (órgano como cuerpo físico deformable)
-  ├─ placement          (posición anatómica, sujeción)
-  └─ organ_db
+parts/props
+  ├─ prop_body         (prop interno como cuerpo físico deformable)
+  ├─ placement          (posición de partes, sujeción)
+  └─ prop_db
 ```
 
 ---
@@ -191,65 +191,65 @@ anatomy/organs
 ## L4 — Physiological Systems
 
 ```
-physio/cardiovascular
-  ├─ heart
-  │   ├─ chambers        (2 aurículas, 2 ventrículos como cámaras físicas)
-  │   ├─ valves          (mitral, tricúspide, aórtica, pulmonar)
-  │   ├─ electrophysiology (nodo SA/AV, His-Purkinje; FitzHugh-Nagumo→bidominio por LOD)
-  │   ├─ contraction     (contracción activa del miocardio → impulsa sangre)
+physio/de bombeo
+  ├─ pump
+  │   ├─ chambers        (2 depósitos, 2 cámaras como cámaras físicas)
+  │   ├─ valves          (de entrada, tricúspide, de salida, secundario)
+  │   ├─ electrophysiology (nodo SA/AV, His-Purkinje; FitzHugh-Nagumo→ por LOD)
+  │   ├─ contraction     (contracción activa del cámara → impulsa fluido)
   │   ├─ pv_loop         (bucle presión-volumen, validación)
-  │   ├─ autonomic_input (responde a simpático/parasimpático de L5)
+  │   ├─ autonomic_input (responde a mando alto/paramando alto de L5)
   │   ├─ fatigue
   │   └─ pathology       (arritmia, insuficiencia)
   ├─ vessels
-  │   ├─ arteries        (con distensibilidad, Windkessel)
-  │   ├─ veins           (retorno, capacitancia)
+  │   ├─ out_tubes        (con distensibilidad, R–C)
+  │   ├─ return_tubes           (retorno, capacitancia)
   │   ├─ capillaries     (intercambio con tejido)
-  │   └─ vascular_graph  (red completa del cuerpo)
-  └─ blood
+  │   └─ de tubos_graph  (red completa del cuerpo)
+  └─ fluid
       ├─ volume
       ├─ pressure
       ├─ velocity
-      ├─ oxygenation     (O2 unido a hemoglobina, curva de disociación)
+      ├─ oxygenation     (carga unido a hemoglobina, curva de disociación)
       ├─ co2
       ├─ ph
       ├─ temperature     (transporta calor → termo)
       └─ hemostasis      (coagulación en heridas)
-physio/respiratory
+physio/bellows
   ├─ airways            (tráquea, bronquios)
   ├─ lungs              (volumen, distensibilidad)
-  ├─ alveoli            (intercambio gaseoso O2/CO2)
-  ├─ breathing_drive    (diafragma + intercostales, músculos reales de L3)
-  ├─ gas_exchange       (difusión alveolo↔capilar)
+  ├─ air_cells            (intercambio gaseoso carga/residuo)
+  ├─ breathing_drive    (diafragma + intercostales, actuadores reales de L3)
+  ├─ transfer       (difusión celda↔tubo fino)
   ├─ lung_capacity      (volúmenes: tidal, vital, residual)
-  └─ gas_transport      (O2/CO2 en sangre ↔ tejidos)
+  └─ gas_transport      (carga/residuo en fluido ↔ tejidos)
 physio/digestive
   ├─ mouth              (masticación, saliva)
   ├─ esophagus          (peristalsis)
   ├─ stomach            (mezcla, ácido)
   ├─ intestines         (peristalsis, tránsito)
-  ├─ absorption         (nutrientes → sangre)
-  └─ nutrients          (glucosa, grasas, proteínas → metabolismo)
-physio/metabolism
-  ├─ atp                (moneda energética)
-  ├─ pcr                (fosfocreatina, sprint)
-  ├─ glycolysis         (anaeróbico)
-  ├─ oxidative          (aeróbico, usa O2)
+  ├─ absorption         (nutrientes → fluido)
+  └─ nutrients          (glucosa, grasas, proteínas → buffer de energía)
+physio/energy
+  ├─ energy                (moneda energética)
+  ├─ pcr                (reserva rápida, sprint)
+  ├─ glycolysis         (ansostenible)
+  ├─ oxidative          (sostenible, usa carga)
   ├─ glycogen_store
   ├─ fat_store
-  ├─ energy_balance     (gasto vs ingesta)
+  ├─ energy_balance     (throughput vs ingesta)
   └─ fatigue_global     (cansancio como consecuencia energética)
 physio/thermoregulation
-  ├─ heat_production    (metabolismo + trabajo muscular)
+  ├─ heat_production    (buffer de energía + trabajo de actuador)
   ├─ conduction
   ├─ convection
   ├─ radiation
   ├─ evaporation
   ├─ sweat              (glándulas, pérdida de agua)
-  └─ shivering          (genera calor vía músculo)
+  └─ shivering          (genera calor vía actuador)
 physio/endocrine
   ├─ hormone            (modelo genérico: secreción, vida media, receptor)
-  ├─ adrenaline         (modula corazón, músculo)
+  ├─ adrenaline         (modula bomba, actuador)
   ├─ cortisol
   ├─ insulin_glucagon   (regula glucosa)
   └─ hormone_bus        (modulación difusa de otros sistemas)
@@ -268,120 +268,120 @@ physio/homeostasis
 
 ---
 
-## L5 — Nervous System
+## L5 — Control layer
 
 ```
-nervous/neuron
-  ├─ hodgkin_huxley     (potencial de acción, scientific)
+control/neuron
+  ├─ node_model     (potencial de acción, scientific)
   ├─ integrate_fire     (LOD rápido)
   ├─ cable_equation     (propagación a lo largo del axón)
   ├─ myelin             (conducción saltatoria, velocidad)
-  ├─ synapse            (química, retardo)
+  ├─ synapse            (dinámica, retardo)
   └─ refractory
-nervous/cns
-  ├─ spinal_cord        (sustrato de reflejos + CPG)
+control/cns
+  ├─ spinal_cord        (sustrato de realimentacións + CPG)
   ├─ tracts             (vías ascendentes/descendentes)
   └─ brain_interface    (puerta a L7)
-nervous/spinal
-  ├─ reflex_stretch     (arco reflejo miotático)
+control/pattern
+  ├─ reflex_stretch     (arco realimentación miotático)
   ├─ reflex_golgi       (inhibición por tensión)
   ├─ reflex_withdrawal  (retirada por dolor)
   ├─ cpg                (central pattern generator, ritmo locomotor)
   └─ interneurons
-nervous/motor
+control/motor
   ├─ motoneuron
-  ├─ motor_unit         (motoneurona + fibras que inerva)
+  ├─ motor_unit         (motonodo + fibras que inerva)
   ├─ recruitment        (principio de tamaño)
   ├─ rate_coding
-  └─ nmj                (unión neuromuscular → activación muscular L3)
-nervous/afferent
-  ├─ spindle            (huso muscular: longitud/velocidad)
-  ├─ golgi_organ        (órgano tendinoso de Golgi: tensión)
+  └─ nmj                (unión de mando → activación de actuador L3)
+control/afferent
+  ├─ spindle            (sensor de actuador: longitud/velocidad)
+  ├─ golgi_organ        (prop interno tendinoso de Golgi: tensión)
   ├─ joint_receptor
   └─ nociceptor         (dolor → L6)
-nervous/autonomic
-  ├─ sympathetic        (lucha/huida → corazón, vasos)
+control/autonomic
+  ├─ sympathetic        (lucha/huida → bomba, tubos)
   ├─ parasympathetic    (reposo)
-  └─ visceral_control   (regula órganos de L4)
-nervous/conduction
-  ├─ nerve_bundle       (nervios reales, haces)
+  └─ visceral_control   (regula props internos de L4)
+control/conduction
+  ├─ nerve_bundle       (controles reales, haces)
   ├─ conduction_delay   (retardo real por distancia/velocidad)
   └─ nerve_db
 ```
 
 ---
 
-## L6 — Sensory Simulation
+## L6 — Sensors Simulation
 
 ```
 sensory/vision
   ├─ eye_optics         (córnea, cristalino, apertura de pupila)
   ├─ accommodation      (enfoque)
-  ├─ retina             (fotorreceptores, conos/bastones)
-  ├─ eye_render         (render offscreen desde el ojo — única fuente de info visual)
+  ├─ sensor             (fotorreceptores, conos/bastones)
+  ├─ eye_render         (render offscreen desde el cámara — única fuente de info visual)
   ├─ visual_field       (campo de visión, agudeza periférica vs foveal)
-  ├─ optic_signal       (imagen → señal a L7; el cerebro NO recibe posiciones)
-  └─ eye_movement       (sacadas, seguimiento, vergencia — via músculos oculares L3)
+  ├─ optic_signal       (imagen → señal a L7; el agente NO recibe posiciones)
+  └─ eye_movement       (sacadas, seguimiento, vergencia — via actuadores de cámara L3)
 sensory/hearing
   ├─ sound_propagation  (distancia, atenuación, oclusión)
   ├─ hrtf               (dirección por diferencias entre oídos)
   ├─ cochlea            (frecuencia → señal neural)
   └─ auditory_signal    (→ L7)
-sensory/vestibular
+sensory/IMU
   ├─ semicircular       (aceleración angular de la cabeza)
   ├─ otolith            (aceleración lineal + gravedad)
-  └─ vestibular_signal  (→ equilibrio L7)
+  └─ IMU_signal  (→ equilibrio L7)
 sensory/proprioception
-  ├─ from_spindles      (longitud muscular)
+  ├─ from_spindles      (longitud de actuador)
   ├─ from_golgi         (tensión)
   ├─ joint_angle_sense
-  └─ body_schema        (mapa propioceptivo → L7)
+  └─ body_schema        (mapa sensor → L7)
 sensory/somatic
   ├─ mechanoreceptor    (tacto, presión)
   ├─ thermoreceptor     (temperatura de piel)
   └─ pain
       ├─ nociception    (señal desde daño real de L2/L3)
-      ├─ pain_pathway   (viaja por nervios reales → L7)
+      ├─ pain_pathway   (viaja por controles reales → L7)
       └─ pain_behavior  (modula comportamiento en L7)
 sensory/interoception
-  ├─ hunger             (desde metabolismo L4)
-  ├─ air_hunger         (desde CO2/O2 L4)
+  ├─ hunger             (desde buffer de energía L4)
+  ├─ air_hunger         (desde residuo/carga L4)
   ├─ fatigue_sense
   └─ thirst
 ```
 
 ---
 
-## L7 — Brain / Cognition / AI
+## L7 — Agent / Cognition / AI
 
 ```
-brain/intention
+agent/intention
   ├─ intention_api      (ÚNICA entrada del usuario: metas, no controles)
   ├─ goal_stack         (avanzar, mirar, agarrar…)
   └─ input_mapper       (W → intención "avanzar", nunca → torque)
-brain/perception
-  ├─ visual_processing  (interpreta la imagen del ojo: bordes, objetos, profundidad)
+agent/perception
+  ├─ visual_processing  (interpreta la imagen del cámara: bordes, objetos, profundidad)
   ├─ auditory_processing
   ├─ world_model        (modelo interno del entorno construido SOLO desde sentidos)
   └─ attention
-brain/motor
+agent/motor
   ├─ motor_cortex       (traduce meta a patrón de activación deseado)
   ├─ premotor           (planificación de secuencias)
   ├─ cerebellum         (coordinación fina, corrección predictiva)
   ├─ basal_ganglia      (selección de acción)
-  └─ descending_drive   (comando hacia médula L5)
-brain/balance
-  ├─ postural_control   (integra vestíbulo + propiocepción)
+  └─ descending_drive   (comando hacia capa de control L5)
+agent/balance
+  ├─ postural_control   (integra vestíbulo + sensor de articulación)
   ├─ com_estimation     (estima centro de masa desde sentidos)
   ├─ balance_controller (correcciones continuas → drive)
   └─ fall_recovery
-brain/cognition
+agent/cognition
   ├─ decision           (comportamiento de alto nivel)
   ├─ memory             (opcional)
   └─ motor_learning     (opcional: mejora con la práctica)
 ```
 
-**Nota crítica:** `brain/*` solo consume señales sensoriales (L6) y publica drive motor (→ L5). No accede a estado físico del mundo ni del propio cuerpo salvo por vía sensorial. Esto se verifica con tests de causalidad.
+**Nota crítica:** `agent/*` solo consume señales sensoriales (L6) y publica drive motor (→ L5). No accede a estado físico del mundo ni del propio cuerpo salvo por vía sensorial. Esto se verifica con tests de causalidad.
 
 ---
 
@@ -393,16 +393,16 @@ render/core
   ├─ pipeline
   ├─ mesh
   └─ material
-render/anatomy_layers
+render/parts_layers
   ├─ skin_layer
-  ├─ muscle_layer
+  ├─ actuator_layer
   ├─ skeleton_layer
-  ├─ organ_layer
-  ├─ vascular_layer     (flujo sanguíneo visible)
-  └─ neural_layer       (señales nerviosas visibles)
+  ├─ prop_layer
+  ├─ de tubos_layer     (flujo de fluido visible)
+  └─ neural_layer       (señales de controls visibles)
 render/debug
   ├─ vectors            (fuerzas, torques)
-  ├─ activation_heatmap (activación muscular)
+  ├─ activation_heatmap (activación de actuador)
   ├─ contact_points
   └─ com_marker
 render/eye_target       (render offscreen que alimenta L6 visión)
@@ -424,10 +424,10 @@ tools/world
   ├─ objects            (obstáculos, objetos manipulables)
   └─ environment        (temperatura ambiente, sonido)
 tools/validation
-  ├─ harness            (corre benchmarks fisiológicos)
+  ├─ harness            (corre benchmarks del modelos)
   ├─ gait_benchmark     (cinemática + GRF vs datos reales)
-  ├─ muscle_benchmark   (curvas F-L / F-V)
-  ├─ cardio_benchmark   (bucle PV, gasto cardíaco)
+  ├─ actuator_benchmark   (curvas F-L / F-V)
+  ├─ pump_benchmark   (bucle PV, throughput)
   └─ causality_check    (asegura que ningún sistema hace trampa)
 tools/profiler
 tools/recorder_ui       (inspeccionar señales grabadas)

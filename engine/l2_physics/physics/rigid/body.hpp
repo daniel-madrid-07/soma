@@ -83,7 +83,7 @@ struct RigidBody {
     void apply_torque(Vec3 t) { torque += t; }
 
     // Fuerza en un punto del mundo: genera fuerza lineal + par = (r × f).
-    // Así es como un MÚSCULO empuja un HUESO en su inserción.
+    // Así es como un ACTUADOR empuja un HUESO en su inserción.
     void apply_force_at(Vec3 f, Vec3 world_point) {
         force += f;
         torque += math::cross(world_point - pos, f);

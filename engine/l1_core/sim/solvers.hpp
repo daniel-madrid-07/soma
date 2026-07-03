@@ -1,7 +1,7 @@
 // SOMA — L1 — integradores ODE.
 // Un solo lugar para la integración numérica; ningún sistema la reimplementa.
 // - Euler semi-implícito (simpléctico): estable y barato para cuerpos rígidos.
-// - RK4: cuando importa la precisión (dinámica muscular, química, nervio).
+// - RK4: cuando importa la precisión (dinámica de actuador, dinámica, control).
 #pragma once
 
 #include "core/math/scalar.hpp"
@@ -32,7 +32,7 @@ State rk4(const State& y, Real t, Real dt, Deriv f) {
     return y + (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (dt / 6.0);
 }
 
-// Euler explícito (para química lenta donde la estabilidad no es crítica).
+// Euler explícito (para dinámica lenta donde la estabilidad no es crítica).
 template <class State, class Deriv>
 State euler(const State& y, Real t, Real dt, Deriv f) {
     return y + f(t, y) * dt;

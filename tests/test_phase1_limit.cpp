@@ -1,7 +1,7 @@
-// SOMA — Test FASE 1 (cierre): límite articular anatómico (rango de movimiento).
+// SOMA — Test FASE 1 (cierre): límite articular de partes (rango de movimiento).
 //
 // Un hueso pende de un pivote y la gravedad lo lleva a colgar (90° desde la
-// horizontal). Con un límite anatómico de 45°, el hueso DEBE detenerse en 45° y
+// horizontal). Con un límite de partes de 45°, el hueso DEBE detenerse en 45° y
 // no seguir. Control: sin límite alcanza ~90°. Así se modela que un codo no
 // hiperextiende — sin scripting, por restricción física.
 #include "physics/constraints/ball_joint.hpp"

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SOMA — Constantes vitales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#0e1014; --panel:#14181e; --ink:#f2ead9; --muted:#8a8578;
+    --pump:#4fd6c2; --pressure:#8fb3ff; --hr:#ff6b6b; --vent:#7ad1a8; --fat:#ffb347; --grid:#242a33; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font-family:'Space Grotesk',sans-serif;
+    padding:32px 40px; min-height:100vh; }
+  header { margin-bottom:26px; }
+  .kicker { font-size:11px; letter-spacing:.38em; text-transform:uppercase; color:var(--pump); font-weight:700; }
+  h1 { font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:38px; margin-top:6px; }
+  header p { color:var(--muted); font-size:13px; margin-top:8px; max-width:640px; line-height:1.55; }
+  .grid { display:grid; grid-template-columns: 1fr 1.2fr; gap:20px; }
+  .full { grid-column:1 / -1; }
+  .card { background:var(--panel); border:1px solid rgba(255,255,255,.06); border-radius:3px; padding:18px 20px; }
+  .card h2 { font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); font-weight:500; margin-bottom:4px; }
+  .card .sub { font-family:'Fraunces',serif; font-size:22px; margin-bottom:12px; }
+  .card .sub b { color:var(--pump); font-weight:500; }
+  canvas { width:100%; display:block; }
+  .legend { display:flex; gap:18px; margin-top:10px; font-size:11.5px; color:var(--muted); }
+  .legend i { display:inline-block; width:10px; height:2.5px; margin-right:6px; vertical-align:middle; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="kicker">Telemetría · emergente</div>
+    <h1>constantes vitales</h1>
+    <p>El bomba no es una variable: es una bomba de elastancia variable con válvulas.
+       La desgaste no está scriptada: emerge del balance entre demanda y aporte de energía.
+       Estas gráficas salen directas de los modelos — nada dibujado a mano.</p>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Ventrículo izquierdo · bucle presión–volumen</h2>
+      <div class="sub">trabajo de bomba por ciclo · <b id="hrlabel">75 /min</b></div>
+      <canvas id="pv" height="300"></canvas>
+    </div>
+    <div class="card">
+      <h2>Presión · de salida y ventricular</h2>
+      <div class="sub"><b id="bp">—</b> u</div>
+      <canvas id="wave" height="300"></canvas>
+      <div class="legend"><span><i style="background:var(--pressure)"></i>de salida</span>
+        <span><i style="background:var(--pump)"></i>cámara izq.</span></div>
+    </div>
+    <div class="card full">
+      <h2>Energética · reposo → esfuerzo → recuperación</h2>
+      <div class="sub">trabajar cuesta energía → sube la desgaste → <b>baja la fuerza</b></div>
+      <canvas id="energy" height="260"></canvas>
+      <div class="legend"><span><i style="background:var(--hr)"></i>frecuencia de bomba</span>
+        <span><i style="background:var(--vent)"></i>caudal</span>
+        <span><i style="background:var(--fat)"></i>desgaste</span></div>
+    </div>
+  </div>
+
+  <script src="telemetry.js"></script>
+  <script>
+  (function () {
+    const V = window.SOMA_TELEMETRY;
+    const css = getComputedStyle(document.documentElement);
+    const C = k => css.getPropertyValue(k).trim();
+    const DPR = Math.min(devicePixelRatio || 1, 2);
+
+    function setup(cv) {
+      const w = cv.clientWidth, h = cv.height;
+      cv.width = w * DPR; cv.height = h * DPR;
+      const ctx = cv.getContext('2d'); ctx.scale(DPR, DPR);
+      return { ctx, w, h };
+    }
+    function axes(ctx, w, h, pad, xr, yr, xlab, ylab) {
+      ctx.strokeStyle = C('--grid'); ctx.lineWidth = 1; ctx.fillStyle = C('--muted');
+      ctx.font = "11px 'Space Grotesk'";
+      for (let i = 0; i <= 4; i++) {
+        const y = pad.t + (h - pad.t - pad.b) * i / 4;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke();
+        const val = yr[1] - (yr[1] - yr[0]) * i / 4;
+        ctx.fillText(val.toFixed(0), 6, y + 3);
+      }
+      ctx.fillText(ylab, 6, 12); ctx.fillText(xlab, w - pad.r - 4, h - 6);
+    }
+    const sx = (v, xr, w, pad) => pad.l + (w - pad.l - pad.r) * (v - xr[0]) / (xr[1] - xr[0]);
+    const sy = (v, yr, h, pad) => (h - pad.b) - (h - pad.t - pad.b) * (v - yr[0]) / (yr[1] - yr[0]);
+    function line(ctx, pts, xr, yr, w, h, pad, color, close) {
+      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.beginPath();
+      pts.forEach((p, i) => { const X = sx(p[0], xr, w, pad), Y = sy(p[1], yr, h, pad);
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); });
+      if (close) ctx.closePath();
+      ctx.stroke();
+    }
+
+    // --- Bucle PV ---
+    (function () {
+      const { ctx, w, h } = setup(document.getElementById('pv'));
+      const pad = { l: 34, r: 16, t: 14, b: 24 };
+      const pv = V.pump.pv;
+      const Vs = pv.map(p => p[0]), Ps = pv.map(p => p[1]);
+      const xr = [Math.min(...Vs) - 8, Math.max(...Vs) + 8];
+      const yr = [0, Math.max(...Ps) * 1.1];
+      axes(ctx, w, h, pad, xr, yr, 'volumen (mL)', 'P (u)');
+      const loop = pv.map(p => [p[0], p[1]]);
+      // relleno tenue del área (trabajo)
+      ctx.fillStyle = 'rgba(79,214,194,.10)';
+      ctx.beginPath(); loop.forEach((p, i) => { const X = sx(p[0], xr, w, pad), Y = sy(p[1], yr, h, pad);
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.closePath(); ctx.fill();
+      line(ctx, loop, xr, yr, w, h, pad, C('--pump'), true);
+      document.getElementById('hrlabel').textContent = V.pump.hr + ' /min';
+    })();
+
+    // --- Ondas de presión ---
+    (function () {
+      const { ctx, w, h } = setup(document.getElementById('wave'));
+      const pad = { l: 34, r: 12, t: 14, b: 24 };
+      const pv = V.pump.pv;
+      const ao = pv.map((p, i) => [i, p[2]]), lv = pv.map((p, i) => [i, p[1]]);
+      const xr = [0, pv.length - 1];
+      const yr = [0, Math.max(...pv.map(p => Math.max(p[1], p[2]))) * 1.1];
+      axes(ctx, w, h, pad, xr, yr, 'tiempo →', 'u');
+      line(ctx, lv, xr, yr, w, h, pad, C('--pump'));
+      line(ctx, ao, xr, yr, w, h, pad, C('--pressure'));
+      const syso = Math.max(...pv.map(p => p[2])), dia = Math.min(...pv.map(p => p[2]));
+      document.getElementById('bp').textContent = Math.round(syso) + '/' + Math.round(dia);
+    })();
+
+    // --- Energética ---
+    (function () {
+      const { ctx, w, h } = setup(document.getElementById('energy'));
+      const pad = { l: 34, r: 12, t: 14, b: 24 };
+      const s = V.energy.series;               // [t, hr, vent, fatigue, lactate]
+      const xr = [0, s[s.length - 1][0]];
+      const yr = [0, 180];
+      // sombreado de fases
+      const marks = V.energy.marks;
+      ctx.fillStyle = 'rgba(255,179,71,.06)';
+      const x0 = sx(marks[0], xr, w, pad), x1 = sx(marks[1], xr, w, pad);
+      ctx.fillRect(x0, pad.t, x1 - x0, h - pad.t - pad.b);
+      axes(ctx, w, h, pad, xr, yr, 'tiempo (s)', 'bpm · u/min');
+      line(ctx, s.map(d => [d[0], d[1]]), xr, yr, w, h, pad, C('--hr'));       // HR
+      line(ctx, s.map(d => [d[0], d[2]]), xr, yr, w, h, pad, C('--vent'));     // caudal
+      line(ctx, s.map(d => [d[0], d[3] * 180]), xr, yr, w, h, pad, C('--fat')); // desgaste (0..1 → escala)
+      // etiquetas de fase
+      ctx.fillStyle = C('--muted'); ctx.font = "11px 'Space Grotesk'";
+      ctx.fillText('reposo', pad.l + 4, pad.t + 12);
+      ctx.fillText('esfuerzo', x0 + 6, pad.t + 12);
+      ctx.fillText('recuperación', x1 + 6, pad.t + 12);
+    })();
+
+    addEventListener('resize', () => location.reload());
+  })();
+  </script>
+</body>
+</html>

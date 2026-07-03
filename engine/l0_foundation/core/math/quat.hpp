@@ -1,4 +1,4 @@
-// SOMA — L0 — Quat. Cuaternión unitario para orientaciones (huesos, cabeza, ojo).
+// SOMA — L0 — Quat. Cuaternión unitario para orientaciones (huesos, cabeza, cámara).
 #pragma once
 
 #include "core/math/mat.hpp"

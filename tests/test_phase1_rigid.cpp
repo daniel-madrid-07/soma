@@ -4,7 +4,7 @@
 // REPOSA. Todo por física — cero animación. Además valida:
 //   - integrador en caída libre vs analítico,
 //   - conservación de momento angular sin par (giro constante),
-//   - una fuerza fuera del centro genera rotación (así empuja un músculo a un hueso).
+//   - una fuerza fuera del centro genera rotación (así empuja un actuador a un hueso).
 #include "core/assert.hpp"
 #include "physics/collision/ground.hpp"
 #include "physics/forces/gravity.hpp"
@@ -50,7 +50,7 @@ static void test_angular_conservation() {
     assert(!near(b.orient.w, 1.0, 1e-3) || !near(b.orient.z, 0.0, 1e-3));
 }
 
-// --- 3) Fuerza fuera del centro => aparece rotación (músculo->hueso) ---
+// --- 3) Fuerza fuera del centro => aparece rotación (actuador->hueso) ---
 static void test_off_center_force() {
     RigidBody b = RigidBody::make_box(1.0, Vec3{0.5, 0.1, 0.1}, Vec3{0, 0, 0});
     // Fuerza +Y aplicada en el extremo +X: debe generar par alrededor de +Z.

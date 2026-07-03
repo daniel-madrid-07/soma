@@ -6,7 +6,7 @@
 //
 // Modelo determinista: entrega en el mismo tick, en orden de dependencia
 // (el scheduler ordena productores antes que consumidores). Al final del tick
-// el bus se limpia. Retardos reales (conducción nerviosa) se modelan aparte,
+// el bus se limpia. Retardos reales (conducción de control) se modelan aparte,
 // no aquí.
 #pragma once
 
