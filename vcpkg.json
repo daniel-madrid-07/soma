@@ -1,0 +1,12 @@
+{
+  "name": "soma",
+  "version": "0.0.1",
+  "description": "SOMA — simulador de organismo humano desde cero. Todo emerge de física y biología.",
+  "$comment": "Dependencias del stack (docs/ARCHITECTURE.md §7). Se activan cuando su capa entra en juego.",
+  "dependencies": [
+    "eigen3",
+    "entt",
+    "gtest",
+    "tbb"
+  ]
+}
