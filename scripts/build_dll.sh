@@ -16,4 +16,9 @@ for a in 1 2 3; do
   cat "$OUT.log"; exit 1
 done
 [ -f "$OUT" ] || { cat "$OUT.log"; exit 1; }
-echo "OK -> $OUT  (cópialo a  <tu proyecto Unity>/Assets/Plugins/soma.dll)"
+echo "OK -> $OUT"
+# Si el proyecto Unity está en SOMA/, copia la DLL directamente a sus Plugins.
+if [ -d "$ROOT/SOMA/Assets" ]; then
+  mkdir -p "$ROOT/SOMA/Assets/Plugins"
+  cp -f "$OUT" "$ROOT/SOMA/Assets/Plugins/soma.dll" && echo "   copiada a SOMA/Assets/Plugins/soma.dll"
+fi
