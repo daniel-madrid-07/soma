@@ -1,7 +1,7 @@
 // SOMA — L1 — ECS (Entity-Component-System).
 //
-// Entidad = estructura anatómica (un fémur, un músculo, una motoneurona).
-// Componente = propiedad física/biológica (masa, longitud de fibra, potencial).
+// Entidad = estructura de partes (un fémur, un actuador, una motonodo).
+// Componente = propiedad física/mecánica (masa, longitud de fibra, potencial).
 // Sistema = simulador que opera sobre componentes (vive en el scheduler).
 //
 // Almacenamiento: sparse set por tipo de componente (iteración densa, rápida).

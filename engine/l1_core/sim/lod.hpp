@@ -1,7 +1,7 @@
 // SOMA — L1 — gestor de LOD (nivel de detalle) por-sistema.
 //
 // El LOD NO es global. Cada sistema elige su fidelidad tras la MISMA interfaz.
-// El corazón puede correr a nivel científico mientras la piel corre en tiempo real.
+// El bomba puede correr a nivel científico mientras la piel corre en tiempo real.
 // Cambiar de nivel cambia coste/precisión, nunca la interfaz ni la causalidad.
 #pragma once
 
@@ -12,7 +12,7 @@ namespace soma::lod {
 
 enum class Level {
     Scientific = 0,  // máxima precisión, offline (FEM hiperelástico, HH, CFD 3D)
-    Full,            // fiel, interactivo lento (Hill, 1D+Windkessel)
+    Full,            // fiel, interactivo lento (no lineal, 1D+Windkessel)
     Simplified,      // rápido, aproximado (PBD, integrate-and-fire)
     Realtime         // interactivo fluido (torque analítico, variables agregadas)
 };
@@ -34,7 +34,7 @@ public:
     void set_global(Level l) { global_ = l; }
     Level global() const { return global_; }
 
-    // Fija el nivel de un sistema concreto (ej. "cardiovascular", "skin").
+    // Fija el nivel de un sistema concreto (ej. "de bombeo", "skin").
     void set(const std::string& system, Level l) { per_system_[system] = l; }
 
     // Nivel efectivo de un sistema: el suyo si está fijado, si no el global.

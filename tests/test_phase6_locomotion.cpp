@@ -1,7 +1,7 @@
 // SOMA — Test FASE 6: LOCOMOCIÓN. El objetivo del proyecto.
 //
 // Ensambla toda la cadena causal (ver tests/support/biped.hpp):
-//   INTENCIÓN (usuario) → CPG (ritmo) → control PD → activación → músculos Hill
+//   INTENCIÓN (usuario) → CPG (ritmo) → control PD → activación → actuadores no lineal
 //   → piernas → PIE empuja el SUELO → reacción (GRF + fricción) → el cuerpo AVANZA.
 // Sobre un rig de soporte de peso (altura fija, sin vuelco: como un arnés de marcha
 // de laboratorio) para aislar la PROPULSIÓN. Cero animación.

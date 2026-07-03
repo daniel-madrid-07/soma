@@ -1,17 +1,17 @@
 // SOMA — Test FASE 3 (pierna 2 segmentos): coordinación cadera–rodilla por CPG.
 //
 // Un miembro de dos huesos (muslo + tibia) con dos articulaciones (cadera + rodilla),
-// cada una con músculos antagonistas. Dos osciladores acoplados conducen las
+// cada una con actuadores antagonistas. Dos osciladores acoplados conducen las
 // articulaciones. Se demuestra que el CPG COORDINA ambas articulaciones: con desfase
 // 0 se mueven en fase (correlación positiva); con desfase π, en oposición (negativa).
-// El patrón es EMERGENTE de la dinámica neuronal + física. Cero animación.
-#include "anatomy/muscle/hill_muscle.hpp"
-#include "nervous/spinal/coupled_cpg.hpp"
+// El patrón es EMERGENTE de la dinámica nodol + física. Cero animación.
+#include "actuators/spring/spring_actuator.hpp"
+#include "control/pattern/coupled_cpg.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/constraints/joint_limit.hpp"
 #include "physics/forces/gravity.hpp"
 #include "physics/rigid/body.hpp"
-#include "sensory/proprioception/joint_sense.hpp"
+#include "sensors/joints/joint_sense.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -22,12 +22,12 @@ using namespace soma;
 using math::Real;
 using math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 constexpr Vec3 kGravity{0, 0, -9.80665};
 
-struct Muscle { HillMuscle hill; MuscleAttachment at; RigidBody* a; RigidBody* b; };
+struct Act { SpringActuator act; AttachPoint at; RigidBody* a; RigidBody* b; };
 
 struct Leg {
     RigidBody pelvis = RigidBody::make_static(Vec3{0, 0, 0});
@@ -38,8 +38,8 @@ struct Leg {
     physics::BallJoint knee{Vec3{-0.25, 0, 0}, Vec3{0.25, 0, 0}, 0.2};  // tibia–muslo
     physics::AngleLimit1D hip_lim, knee_lim;
 
-    std::vector<Muscle> muscles;
-    sensory::JointAngleSense sense;   // eje +Y, ref +X, dir +X
+    std::vector<Act> actuators;
+    sensors::JointAngleSense sense;   // eje +Y, ref +X, dir +X
 
     Leg() {
         hip_lim.lo = -1.3; hip_lim.hi = 1.3;
@@ -50,11 +50,11 @@ struct Leg {
         // Rodilla: cruzan de muslo a tibia, offset en +/-Z para brazo de momento.
         add(&thigh, &shank, {0.15, 0, 0.15},  {-0.1, 0, 0}); // 2 knee flexor
         add(&thigh, &shank, {0.15, 0, -0.15}, {-0.1, 0, 0}); // 3 knee extensor
-        for (auto& m : muscles) { m.hill.f_max = 250; m.hill.l_opt = 0.4; }
+        for (auto& m : actuators) { m.act.f_max = 250; m.act.l_opt = 0.4; }
     }
     void add(RigidBody* a, RigidBody* b, Vec3 o, Vec3 i) {
-        Muscle m; m.a = a; m.b = b; m.at.origin_local = o; m.at.insertion_local = i;
-        muscles.push_back(m);
+        Act m; m.a = a; m.b = b; m.at.origin_local = o; m.at.insertion_local = i;
+        actuators.push_back(m);
     }
     static Real c01(Real x) { return x > 1 ? 1 : (x < 0 ? 0 : x); }
 
@@ -63,8 +63,8 @@ struct Leg {
     void pd(int flex_idx, int ext_idx, Real target, Real angle, Real rate) {
         Real kp = 8.0, kd = 1.0, coc = 0.02;
         Real u = kp * (target - angle) - kd * rate;   // >0 => subir ángulo (extensor)
-        muscles[ext_idx].hill.activation = c01((u > 0 ? u : 0) + coc);
-        muscles[flex_idx].hill.activation = c01((u < 0 ? -u : 0) + coc);
+        actuators[ext_idx].act.activation = c01((u > 0 ? u : 0) + coc);
+        actuators[flex_idx].act.activation = c01((u < 0 ? -u : 0) + coc);
     }
 
     // targets: referencia rítmica de cadera y de rodilla (relativa) desde el CPG.
@@ -76,7 +76,7 @@ struct Leg {
         pd(2, 3, knee_target, ak, rk);     // rodilla (ángulo relativo al muslo)
         physics::apply_gravity(thigh, kGravity);
         physics::apply_gravity(shank, kGravity);
-        for (auto& m : muscles) anatomy::apply_muscle(m.hill, m.at, *m.a, *m.b);
+        for (auto& m : actuators) actuators::apply_actuator(m.act, m.at, *m.a, *m.b);
         thigh.integrate_velocity(dt);
         shank.integrate_velocity(dt);
         for (int it = 0; it < 15; ++it) {
@@ -98,7 +98,7 @@ struct Leg {
 // correlación de Pearson entre el ángulo de cadera y el de rodilla (últimos 4 s).
 static void run(Real offset, Real& std_hip, Real& std_knee, Real& corr) {
     Leg leg;
-    nervous::CoupledOscillators cpg(2);
+    control::CoupledOscillators cpg(2);
     cpg.omega = 2.0 * math::Pi;   // 1 Hz
     cpg.offset[1] = offset;
     cpg.phase[0] = 0.0; cpg.phase[1] = offset;  // arranca en el bloqueo estable

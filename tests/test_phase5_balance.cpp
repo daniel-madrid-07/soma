@@ -2,17 +2,17 @@
 //
 // El cuerpo es un péndulo invertido articulado en el tobillo: INESTABLE. La gravedad
 // amplifica cualquier inclinación. Sólo un lazo de realimentación real (vestíbulo →
-// control → activación → músculos Hill) puede mantenerlo de pie. Se verifica:
+// control → activación → actuadores no lineal) puede mantenerlo de pie. Se verifica:
 //   1. con control, se yergue desde una inclinación inicial y NO cae,
 //   2. sin control, CAE (prueba de que el equilibrio es activo, no un truco),
 //   3. tras un EMPUJÓN, se recupera solo.
 // Cero animación: el equilibrio EMERGE de sentir y corregir.
-#include "anatomy/muscle/hill_muscle.hpp"
-#include "brain/balance/postural_control.hpp"
+#include "actuators/spring/spring_actuator.hpp"
+#include "agent/balance/postural_control.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/forces/gravity.hpp"
 #include "physics/rigid/body.hpp"
-#include "sensory/vestibular/vestibular.hpp"
+#include "sensors/imu/imu.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -23,8 +23,8 @@ using namespace soma;
 using math::Real;
 using math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 constexpr Vec3 kGravity{0, 0, -9.80665};
 
@@ -32,14 +32,14 @@ struct Stance {
     RigidBody foot = RigidBody::make_static(Vec3{0, 0, 0});
     RigidBody body = RigidBody::make_box(1.0, Vec3{0.05, 0.05, 0.5}, Vec3{0, 0, 0.5});
     physics::BallJoint ankle{Vec3{0, 0, -0.5}, Vec3{0, 0, 0}, 0.2};   // base al tobillo
-    HillMuscle posterior, anterior;
-    MuscleAttachment post_at, ant_at;
-    sensory::Vestibular vest;
-    brain::BalanceController ctrl;
-    bool active = true;   // false => sin control ni músculos (péndulo invertido puro)
+    SpringActuator posterior, anterior;
+    AttachPoint post_at, ant_at;
+    sensors::Imu vest;
+    agent::BalanceController ctrl;
+    bool active = true;   // false => sin control ni actuadores (péndulo invertido puro)
 
     Stance(Real kp, Real kd, Real tilt0) {
-        for (HillMuscle* m : {&posterior, &anterior}) { m->f_max = 500; m->l_opt = 0.28; }
+        for (SpringActuator* m : {&posterior, &anterior}) { m->f_max = 500; m->l_opt = 0.28; }
         post_at.origin_local = Vec3{-0.2, 0, 0}; post_at.insertion_local = Vec3{0, 0, -0.3};
         ant_at.origin_local = Vec3{0.2, 0, 0};   ant_at.insertion_local = Vec3{0, 0, -0.3};
         ctrl.kp = kp; ctrl.kd = kd;
@@ -56,8 +56,8 @@ struct Stance {
             auto out = ctrl.command(tilt, rate);
             posterior.activation = out.posterior;
             anterior.activation = out.anterior;
-            anatomy::apply_muscle(posterior, post_at, foot, body);
-            anatomy::apply_muscle(anterior, ant_at, foot, body);
+            actuators::apply_actuator(posterior, post_at, foot, body);
+            actuators::apply_actuator(anterior, ant_at, foot, body);
         }
         physics::apply_gravity(body, kGravity);
         body.integrate_velocity(dt);
@@ -99,7 +99,7 @@ int main() {
     assert(mx < 0.25);      // nunca se desploma
     assert(fn < 0.03);      // se endereza
 
-    // 2) Sin músculos activos: CAE (prueba de que el equilibrio es activo, no un truco).
+    // 2) Sin actuadores activos: CAE (prueba de que el equilibrio es activo, no un truco).
     Real mx0, fn0;
     run(0.0, 0.0, 0.12, mx0, fn0, -1, 0, /*active=*/false);
     std::fprintf(stderr, "sin control: max=%.3f final=%.3f\n", mx0, fn0);

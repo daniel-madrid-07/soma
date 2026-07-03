@@ -12,6 +12,10 @@ render/*.png
 render/*.mp4
 render/*.jpg
 
+# Modelos pesados de Blender (se regeneran; 300+ MB)
+models/*.blend
+render/frames/
+
 # Herramientas / temporales
 .playwright-mcp/
 __pycache__/

@@ -1,4 +1,4 @@
-// SOMA — L2 — límite angular anatómico (rango de movimiento).
+// SOMA — L2 — límite angular de partes (rango de movimiento).
 //
 // Un codo no hiperextiende; una rodilla no se dobla hacia adelante. Este límite
 // restringe el ángulo de giro de un hueso, alrededor de un eje, a [lo, hi] rad.

@@ -1,5 +1,5 @@
 // SOMA — L0 — Transform (SE3). Pose rígida: rotación + traslación.
-// Cada hueso tiene una. El punto de inserción de un músculo se transforma con esto.
+// Cada hueso tiene una. El punto de inserción de un actuador se transforma con esto.
 #pragma once
 
 #include "core/math/quat.hpp"

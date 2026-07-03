@@ -1,7 +1,7 @@
 // SOMA — L2 — articulación esférica (point-to-point) por impulsos secuenciales.
 //
 // Mantiene coincidentes dos puntos de anclaje (uno en cada hueso). Es la base de
-// la articulación de rótula (hombro, cadera). El límite anatómico de rango se
+// la articulación de rótula (hombro, cadera). El límite de partes de rango se
 // añade encima (ver joint_limit.hpp). Un extremo puede anclarse al mundo con un
 // RigidBody estático.
 //

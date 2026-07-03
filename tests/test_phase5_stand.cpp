@@ -3,16 +3,16 @@
 // A diferencia del péndulo invertido anclado, aquí NO hay pin ni rig: el cuerpo se
 // sostiene sobre un PIE real (planta con talón y punta) apoyado en el suelo por
 // contacto y fricción. El equilibrio se mantiene con la estrategia de tobillo
-// (vestíbulo → activación de músculos del tobillo). El pie puede resbalar o volcar
+// (vestíbulo → activación de actuadores del tobillo). El pie puede resbalar o volcar
 // si el control falla. Se verifica que el cuerpo se mantiene erguido y recupera de
 // una inclinación, sin caer — equilibrio 100 % emergente y sin idealizaciones.
-#include "anatomy/muscle/hill_muscle.hpp"
-#include "brain/balance/postural_control.hpp"
+#include "actuators/spring/spring_actuator.hpp"
+#include "agent/balance/postural_control.hpp"
 #include "physics/collision/ground.hpp"
 #include "physics/constraints/ball_joint.hpp"
 #include "physics/forces/gravity.hpp"
 #include "physics/rigid/body.hpp"
-#include "sensory/vestibular/vestibular.hpp"
+#include "sensors/imu/imu.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -23,8 +23,8 @@ using namespace soma;
 using math::Real;
 using math::Vec3;
 using physics::RigidBody;
-using anatomy::HillMuscle;
-using anatomy::MuscleAttachment;
+using actuators::SpringActuator;
+using actuators::AttachPoint;
 
 constexpr Vec3 kGravity{0, 0, -9.80665};
 
@@ -35,15 +35,15 @@ struct Stander {
     RigidBody body = RigidBody::make_box(4.0, Vec3{0.05, 0.05, 0.5}, Vec3{0, 0, 0.54});
     physics::BallJoint ankle{Vec3{0, 0, -0.5}, Vec3{0, 0, 0.02}, 0.2};  // base del cuerpo ↔ tobillo
     physics::GroundPlane ground;
-    HillMuscle posterior, anterior;
-    MuscleAttachment post_at, ant_at;
-    sensory::Vestibular vest;
-    brain::BalanceController ctrl;
+    SpringActuator posterior, anterior;
+    AttachPoint post_at, ant_at;
+    sensors::Imu vest;
+    agent::BalanceController ctrl;
 
     Stander(Real tilt0) {
         ground.mu = 1.5; ground.friction = 500;
-        for (HillMuscle* m : {&posterior, &anterior}) { m->f_max = 600; m->l_opt = 0.3; }
-        // Tobillo en (0,0,0.04). Músculos del pie (±X) a un punto del cuerpo por encima.
+        for (SpringActuator* m : {&posterior, &anterior}) { m->f_max = 600; m->l_opt = 0.3; }
+        // Tobillo en (0,0,0.04). Actuadores del pie (±X) a un punto del cuerpo por encima.
         post_at.origin_local = Vec3{-0.1, 0, -0.02}; post_at.insertion_local = Vec3{0, 0, -0.25};
         ant_at.origin_local = Vec3{0.1, 0, -0.02};   ant_at.insertion_local = Vec3{0, 0, -0.25};
         // Inclina el cuerpo tilt0 alrededor del tobillo.
@@ -67,8 +67,8 @@ struct Stander {
         anterior.activation = out.anterior;
         physics::apply_gravity(body, kGravity);
         physics::apply_gravity(foot, kGravity);
-        anatomy::apply_muscle(posterior, post_at, foot, body);
-        anatomy::apply_muscle(anterior, ant_at, foot, body);
+        actuators::apply_actuator(posterior, post_at, foot, body);
+        actuators::apply_actuator(anterior, ant_at, foot, body);
         foot_contacts();
         body.integrate_velocity(dt);
         foot.integrate_velocity(dt);

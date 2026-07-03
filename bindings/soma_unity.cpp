@@ -1,6 +1,6 @@
 // SOMA — API C del motor para Unity (u otro renderer). Compila a soma.dll.
 // Unity NO simula: solo llama a estas funciones (mandar intención, avanzar, leer
-// estado) y dibuja. El cerebro/física es este C++ (el mismo de los 22 tests).
+// estado) y dibuja. El agente/física es este C++ (el mismo de los 22 tests).
 //
 // Estado devuelto por soma_get_state(float out[12]):
 //   0 hipL   1 kneeL   2 hipR   3 kneeR      (rad, ángulos articulares)
@@ -15,8 +15,8 @@ using soma::math::Real;
 
 struct SomaWorld {
     scenario::Biped body;
-    nervous::CoupledOscillators cpg{2};
-    brain::WalkIntention intent;
+    control::CoupledOscillators cpg{2};
+    agent::WalkIntention intent;
     Real X = 0, Y = 0, heading = 0, prevx = 0, speed = 0, steer = 0;
 
     SomaWorld() {

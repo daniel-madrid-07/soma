@@ -40,7 +40,7 @@ struct Result {
     int monitor_ticks;   // cuántas veces corrió la banda de 10 Hz
 };
 
-// Construye un organismo mínimo y lo corre 1 s. Todo por sistemas, cero scripting.
+// Construye un objecto mínimo y lo corre 1 s. Todo por sistemas, cero scripting.
 static Result run_once(std::uint64_t seed) {
     sim::World world(/*base_hz=*/1000.0, seed);
 

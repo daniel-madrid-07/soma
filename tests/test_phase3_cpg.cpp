@@ -2,8 +2,8 @@
 //
 // Verifica que el oscilador de Matsuoka produce un RITMO estable en antifase sin
 // reloj externo, y que se apaga si cesa el impulso tónico. Es el motor rítmico de
-// la locomoción (Fase 6): una neurona conducirá al flexor, la otra al extensor.
-#include "nervous/spinal/cpg.hpp"
+// la locomoción (Fase 6): una nodo conducirá al flexor, la otra al extensor.
+#include "control/pattern/cpg.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -14,7 +14,7 @@ using math::Real;
 
 int main() {
     // --- Con impulso tónico: debe oscilar ---
-    nervous::MatsuokaCPG cpg;
+    control::MatsuokaCPG cpg;
     cpg.s = 1.0;
     Real dt = 1.0 / 1000.0;
 
@@ -40,7 +40,7 @@ int main() {
     assert(min_when_flex_high < max_ext * 0.6); // antifase: si flexor alto, extensor bajo
 
     // --- Sin impulso tónico (s = 0): el ritmo se extingue ---
-    nervous::MatsuokaCPG off;
+    control::MatsuokaCPG off;
     off.s = 0.0;
     Real last_activity = 0;
     for (int i = 0; i < 4000; ++i) {

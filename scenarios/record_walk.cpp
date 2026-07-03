@@ -18,8 +18,8 @@ static void put(FILE* f, Vec3 p, Quat q) {
 
 int main() {
     scenario::Biped b;
-    brain::WalkIntention intent; intent.walk = true; intent.effort = 1.0;
-    nervous::CoupledOscillators cpg(2);
+    agent::WalkIntention intent; intent.walk = true; intent.effort = 1.0;
+    control::CoupledOscillators cpg(2);
     cpg.omega = 2.0 * math::Pi * intent.cadence_hz();
     cpg.offset[1] = math::Pi;
     cpg.phase[0] = 0.0; cpg.phase[1] = math::Pi;

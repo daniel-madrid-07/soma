@@ -1,9 +1,9 @@
 // SOMA — grabador: el cuerpo camina HACIA UN OBJETIVO VISIBLE y se exporta a
 // viewer/nav.js para el visor. Une el caminante (Fase 6) con la visión (Fase 7):
-// el ojo ve el objetivo, el cerebro gira hacia su posición retiniana, las piernas
+// el cámara ve el objetivo, el agente gira hacia su posición retiniana, las piernas
 // avanzan. La trayectoria curva EMERGE de ver y corregir. Nada scriptado.
-#include "brain/navigation/steering.hpp"
-#include "sensory/vision/eye.hpp"
+#include "agent/navigation/steering.hpp"
+#include "sensors/vision/camera.hpp"
 #include "support/biped.hpp"
 
 #include <cmath>
@@ -16,13 +16,13 @@ using soma::math::Quat;
 
 int main() {
     scenario::Biped b;
-    brain::WalkIntention intent; intent.walk = true; intent.effort = 1.0;
-    nervous::CoupledOscillators cpg(2);
+    agent::WalkIntention intent; intent.walk = true; intent.effort = 1.0;
+    control::CoupledOscillators cpg(2);
     cpg.omega = 2.0 * math::Pi * intent.cadence_hz();
     cpg.offset[1] = math::Pi; cpg.phase[0] = 0; cpg.phase[1] = math::Pi;
 
-    sensory::Eye eye; eye.retina_half = 1.3;
-    brain::Steering steer;
+    sensors::Camera eye; eye.sensor_half = 1.3;
+    agent::Steering steer;
     Vec3 target{6.0, 3.5, 0.0};    // objetivo en el mundo (x,y)
 
     Real dt = 1.0 / 1000.0;
@@ -65,12 +65,12 @@ int main() {
         X += dloc * std::cos(theta);
         Y += dloc * std::sin(theta);
 
-        // Visión: el ojo (en el cuerpo) ve el objetivo y gira hacia su imagen retiniana.
+        // Visión: el cámara (en el cuerpo) ve el objetivo y gira hacia su imagen retiniana.
         eye.pos = Vec3{X, Y, 1.5};
         eye.orient = Quat::from_axis_angle(Vec3{0, 0, 1}, theta);
         auto r = eye.project(Vec3{target.x, target.y, 1.5});
         if (r.visible)
-            theta += steer.turn_rate(brain::Steering::bearing_from_retina(r.u, eye.focal)) * dt;
+            theta += steer.turn_rate(agent::Steering::bearing_from_sensor(r.u, eye.focal)) * dt;
 
         Real dist = std::hypot(target.x - X, target.y - Y);
         if (dist < 0.4) { if (++reached_hold > 400) break; }  // llega y se detiene un poco

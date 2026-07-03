@@ -1,6 +1,6 @@
 # SOMA — visual en Unity (el motor sigue siendo C++)
 
-Unity solo **dibuja** y **lee el teclado**. El cerebro/física es tu C++, compilado
+Unity solo **dibuja** y **lee el teclado**. El agente/física es tu C++, compilado
 como `soma.dll`. Unity manda tu intención → el motor responde → Unity pinta.
 
 ```
@@ -36,7 +36,7 @@ Unity (C#, teclado + render)  ⇄  soma.dll  (motor SOMA en C++)
 
 Una figura de primitivas (torso, cabeza, dos piernas con rodilla, pies) que **camina
 por física** cuando pulsas W. No es una animación: cada paso sale de
-intención → CPG → músculos Hill → huesos → suelo, calculado por `soma.dll` en tiempo real.
+intención → CPG → actuadores no lineal → huesos → suelo, calculado por `soma.dll` en tiempo real.
 
 ## Si algo se ve al revés
 

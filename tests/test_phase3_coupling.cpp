@@ -3,7 +3,7 @@
 // Dos osciladores acoplados deben BLOQUEARSE a un desfase deseado (aquí 90°),
 // partiendo de fases arbitrarias. Es la base de la coordinación cadera–rodilla en
 // una zancada: cada articulación mantiene su relación de fase con la líder.
-#include "nervous/spinal/coupled_cpg.hpp"
+#include "control/pattern/coupled_cpg.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -13,7 +13,7 @@ using namespace soma;
 using math::Real;
 
 int main() {
-    nervous::CoupledOscillators cpg(2);
+    control::CoupledOscillators cpg(2);
     cpg.omega = 2.0 * math::Pi;          // 1 Hz
     cpg.offset[1] = math::HalfPi;        // rodilla a 90° de la cadera
     cpg.phase[0] = 0.3; cpg.phase[1] = 2.0;  // fases iniciales arbitrarias
@@ -28,7 +28,7 @@ int main() {
         if (prev <= 0 && s > 0) ++cycles;
         prev = s;
         if (i >= 4000) {                 // ventana asentada
-            mean_dphi += nervous::wrap_pi(cpg.phase[1] - cpg.phase[0]);
+            mean_dphi += control::wrap_pi(cpg.phase[1] - cpg.phase[0]);
             ++samples;
         }
     }
