@@ -1,0 +1,15 @@
+SOMA — activos de terceros (visualización)
+
+Xbot.glb, Soldier.glb
+  Modelos humanos rigged tomados de los ejemplos de three.js:
+  https://github.com/mrdoob/three.js/tree/master/examples/models/gltf
+  three.js: licencia MIT. Personajes originalmente de Adobe Mixamo (uso libre).
+  Se usan SOLO como piel/malla para la visualización. El movimiento NO es su
+  animación incluida: el esqueleto lo mueven los ángulos articulares que produce
+  la simulación física de SOMA (ver scenarios/record_joints.cpp + viewer/realistic.html).
+
+Nota de realismo: son modelos de resolución de videojuego (no fotorrealistas).
+Activos humanos fotorrealistas libres y descargables directos son escasos (suelen
+requerir cuenta o pago: Sketchfab, RenderPeople, Mixamo). El pipeline de retargeting
+admite cualquier modelo glTF con esqueleto humanoide estándar: basta sustituir el
+.glb y ajustar los nombres de hueso en realistic.html.

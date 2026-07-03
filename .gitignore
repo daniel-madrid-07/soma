@@ -1,0 +1,40 @@
+# SOMA — artefactos de build (se regeneran con los scripts)
+*.exe
+*.dll
+*.o
+*.obj
+*.log
+*.dll.log
+build/
+
+# Renders/capturas (se regeneran); se conserva render/motion.json
+render/*.png
+render/*.mp4
+render/*.jpg
+
+# Herramientas / temporales
+.playwright-mcp/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+*.blend1
+
+# ---- Unity (carpetas generadas; NO se suben) ----
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+*.csproj
+*.sln
+*.suo
+*.user
+*.unityproj
+.vsconfig
+# permitir la DLL dentro del proyecto Unity aunque *.dll esté ignorado arriba:
+!SOMA/Assets/Plugins/soma.dll

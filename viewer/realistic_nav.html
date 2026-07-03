@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SOMA — Humano real, mundo real</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,500&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root { --bg:#0e1014; --ink:#f2ead9; --muted:#8a8578; --accent:#4fd6c2; --goal:#ffb347; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; background:var(--bg); color:var(--ink); font-family:'Space Grotesk',sans-serif; overflow:hidden; }
+  #app { position:fixed; inset:0; } canvas { display:block; }
+  .masthead { position:fixed; top:28px; left:34px; z-index:10; pointer-events:none; max-width:360px; }
+  .kicker { font-size:11px; letter-spacing:.38em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+  h1 { font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:36px; line-height:1.02; margin-top:6px; }
+  .masthead p { font-size:12.5px; color:var(--muted); margin-top:10px; line-height:1.5; }
+  .readout { position:fixed; top:30px; right:34px; z-index:10; text-align:right; display:grid; gap:14px; }
+  .stat .n { font-family:'Fraunces',serif; font-size:30px; line-height:1; }
+  .stat .l { font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+  .hint { position:fixed; bottom:24px; right:34px; z-index:10; font-size:11px; color:var(--muted); }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div class="masthead">
+    <div class="kicker">Malla real · física · visión</div>
+    <h1>humano real,<br>mundo real</h1>
+    <p>Un humano rigged camina por el suelo hacia una baliza que <em>ve</em>. Piernas y brazos los mueve la física (músculos + péndulos); el rumbo, la visión. La piel es real; nada es una animación grabada.</p>
+  </div>
+  <div class="readout">
+    <div class="stat"><div class="n" id="rdist">—</div><div class="l">m · al objetivo</div></div>
+  </div>
+  <div class="hint">arrastra para orbitar · rueda para zoom</div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+  <script src="real_nav.js"></script>
+  <script>
+  (function () {
+    const HIP_SIGN = 1.0, KNEE_SIGN = 1.0, ARM_DOWN = 1.2;
+    const LAT = new THREE.Vector3(1,0,0);    // eje lateral del modelo (flexión sagital)
+    const FWD = new THREE.Vector3(0,0,-1);   // eje "adelante" del modelo (bajar brazos)
+    const flexAx = {};                        // eje de flexión en local de cada hueso
+    const MODEL_FWD = Math.PI;   // ajuste del "frente" del modelo (0 o π)
+    let targetYaw = -Math.PI/2, yawInit = false;
+
+    const D = window.SOMA_REALNAV, frames = D.frames, fps = D.meta.fps, TGT = D.meta.target;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#0e1014');
+    scene.fog = new THREE.Fog('#0e1014', 9, 26);
+    const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.1, 200);
+    camera.position.set(-2.6, 2.4, 3.4);
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    document.getElementById('app').appendChild(renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0.9, 0); controls.enableDamping = true; controls.dampingFactor = 0.06;
+
+    scene.add(new THREE.HemisphereLight('#dfe7ff', '#1a1712', 0.55));
+    const key = new THREE.DirectionalLight('#ffe9c8', 1.5); key.position.set(4,7,3); key.castShadow = true;
+    key.shadow.mapSize.set(2048,2048); const sc=key.shadow.camera; sc.near=1; sc.far=30; sc.left=-10; sc.right=10; sc.top=10; sc.bottom=-10;
+    scene.add(key);
+    const rim = new THREE.DirectionalLight('#4fd6c2', 0.5); rim.position.set(-5,2,-4); scene.add(rim);
+
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(120,120),
+      new THREE.MeshStandardMaterial({ color:'#15181e', roughness:1 }));
+    floor.rotation.x = -Math.PI/2; floor.receiveShadow = true; scene.add(floor);
+    const grid = new THREE.GridHelper(120,240,0x2a2f38,0x1c2027); grid.position.y=0.001; scene.add(grid);
+
+    // Baliza objetivo en el mundo (sim x,y → three x,-y).
+    const goalMat = new THREE.MeshStandardMaterial({ color:'#ffb347', emissive:'#ffb347', emissiveIntensity:0.8 });
+    const goal = new THREE.Mesh(new THREE.SphereGeometry(0.14,24,18), goalMat);
+    goal.position.set(TGT[0], 0.9, -TGT[1]); scene.add(goal);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.02,0.02,1.8,8),
+      new THREE.MeshBasicMaterial({ color:'#ffb347', transparent:true, opacity:0.25 }));
+    beam.position.set(TGT[0], 0.9, -TGT[1]); scene.add(beam);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.3,0.37,40),
+      new THREE.MeshBasicMaterial({ color:'#ffb347', side:THREE.DoubleSide, transparent:true, opacity:0.5 }));
+    ring.rotation.x = -Math.PI/2; ring.position.set(TGT[0], 0.02, -TGT[1]); scene.add(ring);
+
+    // Estela.
+    const pathPts = frames.map(f => new THREE.Vector3(f[4], 0.02, -f[5]));
+    const pathGeo = new THREE.BufferGeometry().setFromPoints(pathPts);
+    const path = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({ color:'#4fd6c2', transparent:true, opacity:0.7 }));
+    pathGeo.setDrawRange(0,1); scene.add(path);
+
+    const rdist = document.getElementById('rdist');
+    const bones = {}, rest = {};
+    let model=null, ready=false, baseY=0, prevPos=new THREE.Vector3();
+
+    // Detector de huesos robusto: soporta Mixamo (LeftUpLeg…), MakeHuman (upperleg.L…)
+    // y MB-Lab (thigh_L, calf_L…). inc=tokens a incluir, exc=excluir, side=l/r.
+    function fb(root, inc, exc, side){
+      const S = side==='l' ? ['left','.l','_l',':l'] : ['right','.r','_r',':r'];
+      let f=null;
+      root.traverse(o=>{ if(!o.isBone||f) return; const n=o.name.toLowerCase();
+        if(inc.some(t=>n.includes(t)) && !exc.some(t=>n.includes(t)) && S.some(s=>n.includes(s))) f=o; });
+      return f;
+    }
+    function swing(key, axis, sign, angle){ const b=bones[key]; if(!b) return;
+      b.quaternion.copy(rest[key]).multiply(new THREE.Quaternion().setFromAxisAngle(axis, sign*angle)); }
+    // Convierte un eje del MODELO al espacio LOCAL de un hueso (para rotar en el plano
+    // correcto sea cual sea la orientación del rig).
+    function toBoneLocal(bone, modelAxis){
+      const bQ=new THREE.Quaternion(); bone.getWorldQuaternion(bQ);
+      const mQ=new THREE.Quaternion(); model.getWorldQuaternion(mQ);
+      return modelAxis.clone().applyQuaternion(mQ).applyQuaternion(bQ.invert()).normalize();
+    }
+    // Baja un brazo apuntando el hueso (hacia su hijo, el codo) hacia abajo. Robusto
+    // ante cualquier rig: usa la dirección real del hueso, no ejes supuestos.
+    function aimArmDown(key, elbowKey, outSign){
+      const b=bones[key], elb=bones[elbowKey]; if(!b||!elb) return;
+      model.updateMatrixWorld(true);
+      const sh=new THREE.Vector3(), el=new THREE.Vector3();
+      b.getWorldPosition(sh); elb.getWorldPosition(el);
+      const cur=el.sub(sh).normalize();
+      const want=new THREE.Vector3(outSign*0.32,-1,0.14).normalize();  // abajo + algo afuera/adelante
+      const dq=new THREE.Quaternion().setFromUnitVectors(cur,want);
+      const pQ=new THREE.Quaternion(); b.parent.getWorldQuaternion(pQ);
+      const bQ=new THREE.Quaternion(); b.getWorldQuaternion(bQ);
+      b.quaternion.copy(pQ.invert().multiply(dq.multiply(bQ)));
+    }
+
+    function onModel(gltf){
+      model = gltf.scene;
+      model.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.frustumCulled=false;
+        o.material = new THREE.MeshStandardMaterial({ color:'#c99f8c', roughness:0.62, metalness:0.02 }); } });
+      scene.add(model);
+      model.updateMatrixWorld(true);
+      // Normaliza escala (el FBX puede venir en cm) a ~1.7 m de altura.
+      let bb=new THREE.Box3().setFromObject(model), hh=bb.max.y-bb.min.y;
+      if(hh>3 || hh<0.4){ model.scale.multiplyScalar(1.7/hh); model.updateMatrixWorld(true); }
+      bones.upLegL=fb(model,['upleg','upperleg','thigh'],[],'l');
+      bones.legL  =fb(model,['lowerleg','leg','shin','calf'],['up'],'l');
+      bones.upLegR=fb(model,['upleg','upperleg','thigh'],[],'r');
+      bones.legR  =fb(model,['lowerleg','leg','shin','calf'],['up'],'r');
+      bones.armL=fb(model,['upperarm','arm'],['fore','lower'],'l');
+      bones.armR=fb(model,['upperarm','arm'],['fore','lower'],'r');
+      bones.foreL=fb(model,['forearm','lowerarm'],[],'l');
+      bones.foreR=fb(model,['forearm','lowerarm'],[],'r');
+      model.updateMatrixWorld(true);
+      aimArmDown('armL','foreL',+1); aimArmDown('armR','foreR',-1);   // baja los brazos
+      model.updateMatrixWorld(true);
+      // Eje de flexión sagital (lateral del modelo) en el espacio local de cada hueso.
+      ['upLegL','legL','upLegR','legR','armL','armR'].forEach(k=>{
+        if(bones[k]) flexAx[k]=toBoneLocal(bones[k], LAT); });
+      for(const k in bones) if(bones[k]) rest[k]=bones[k].quaternion.clone();
+      const allBones=[]; model.traverse(o=>{ if(o.isBone) allBones.push(o.name); });
+      window.__dbg={ found:Object.fromEntries(Object.entries(bones).map(([k,v])=>[k,v?v.name:'NULL'])),
+                     flex:Object.keys(flexAx), total:allBones.length, sample:allBones.slice(0,20) };
+      const box=new THREE.Box3().setFromObject(model); baseY=-box.min.y;
+      ready=true;
+    }
+    // Carga tu humano: FBX (conserva el skin); si falla, Xbot.glb de respaldo.
+    const gltfLoader=new THREE.GLTFLoader();
+    new THREE.FBXLoader().load('assets/human.fbx',
+      obj => onModel({scene: obj}),
+      undefined,
+      () => gltfLoader.load('assets/Xbot.glb', onModel));
+
+    function drive(fi){
+      const fr=frames[fi];   // hipL,kneeL,hipR,kneeR, X, Y, heading, bob
+      const X=new THREE.Vector3(1,0,0);
+      // Flexión sobre el eje lateral del modelo (correcto para cualquier rig).
+      swing('upLegL', flexAx.upLegL||X, HIP_SIGN, fr[0]);
+      swing('legL',   flexAx.legL||X,   KNEE_SIGN, Math.max(0,-fr[1]));
+      swing('upLegR', flexAx.upLegR||X, HIP_SIGN, fr[2]);
+      swing('legR',   flexAx.legR||X,   KNEE_SIGN, Math.max(0,-fr[3]));
+      // Brazos: hombro SIMULADO por física (péndulo + músculos), en el mismo plano.
+      swing('armL', flexAx.armL||X, 1.0, fr[8]);
+      swing('armR', flexAx.armR||X, 1.0, fr[9]);
+      const px=fr[4], pz=-fr[5];
+      model.position.set(px, baseY+fr[7], pz);
+      path.geometry.setDrawRange(0, fi+1);
+      // El modelo MIRA hacia donde avanza (rumbo derivado del movimiento real).
+      const cur=new THREE.Vector3(px,0,pz);
+      if(prevPos.lengthSq()>0){ const d=cur.clone().sub(prevPos);
+        if(d.lengthSq()>1e-8){ targetYaw=Math.atan2(d.x,d.z)+MODEL_FWD; yawInit=true; }
+        camera.position.x+=d.x; camera.position.z+=d.z; controls.target.x+=d.x; controls.target.z+=d.z; }
+      prevPos.copy(cur);
+      if(!yawInit) model.rotation.y=targetYaw;
+      else { let dy=targetYaw-model.rotation.y; while(dy>Math.PI)dy-=2*Math.PI; while(dy<-Math.PI)dy+=2*Math.PI;
+        model.rotation.y+=dy*0.2; }
+      const dist=Math.hypot(TGT[0]-fr[4], TGT[1]-fr[5]); rdist.textContent=dist.toFixed(2);
+      goalMat.emissiveIntensity=0.6+0.4*Math.sin(fi*0.3);
+    }
+
+    let idx=0, acc=0, last=performance.now(); const dt=1/fps;
+    addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+    function loop(now){ const d=(now-last)/1000; last=now;
+      if(ready){ acc+=d; while(acc>=dt){ acc-=dt; idx=(idx+1)%frames.length; drive(idx); } }
+      controls.update(); renderer.render(scene,camera); requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>
