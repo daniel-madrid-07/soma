@@ -44,6 +44,11 @@ struct Biped {
     Real A_hip = 0.45, A_knee = 0.8;
     Real foot_r = 0.05;
     Real grf[2] = {0, 0};   // fuerza normal por pie (GRF) del último paso
+    bool pin_z = true;      // rig de soporte: torso a altura fija. false = DOF vertical real
+    Real z_k = 60, z_c = 10; // compliancia vertical de apoyo (solo con pin_z=false):
+                             // resorte-amortiguador hacia kZ0 que absorbe el rebote
+                             // del paso (tejido blando/rodilla de apoyo), evita fase
+                             // de vuelo y mantiene marcha, no carrera
 
     Biped() {
         torso.inv_inertia_body = math::Mat3::diagonal(0, 0, 0);  // rig: sin cabeceo
@@ -113,8 +118,10 @@ struct Biped {
                 physics::solve_angle_limit(legs[s].shank, legs[s].knee_lim, dt);
             }
         }
-        torso.pos.y = 0; torso.pos.z = kZ0; torso.orient = math::Quat::identity();
-        torso.vel.y = 0; torso.vel.z = 0; torso.omega = math::Zero3;
+        torso.pos.y = 0; torso.orient = math::Quat::identity();
+        torso.vel.y = 0; torso.omega = math::Zero3;
+        if (pin_z) { torso.pos.z = kZ0; torso.vel.z = 0; }
+        else torso.vel.z += ((kZ0 - torso.pos.z) * z_k - torso.vel.z * z_c) * dt;
         for (int s = 0; s < 2; ++s) {
             legs[s].thigh.vel *= 0.999; legs[s].thigh.omega *= 0.999;
             legs[s].shank.vel *= 0.999; legs[s].shank.omega *= 0.999;
