@@ -44,11 +44,39 @@ En el Inspector del objeto con `SomaEngine`, invierte:
 - `Heading Sign` — si gira al lado contrario.
 - `Hip Sign` / `Knee Sign` — si las piernas flexionan al revés.
 
-## Después (lo visual "bonito")
+## Personaje completo (soma_character.glb + SomaCharacter.cs)
 
-Sustituir las primitivas por el **modelo humano rigged** (el MB-Lab que generamos):
-importas el `.glb/.fbx` en Unity y, en vez de rotar cápsulas, rotas los huesos
-`thigh/calf` del Animator con los mismos ángulos (`st[0..3]`). El puente C++ no cambia.
+El personaje 3D rigged completo (84 huesos, 12 mallas skinned unidas) se exporta con:
+```
+"C:/Program Files/Blender Foundation/Blender 5.1/blender.exe" -b models/soma_character.blend \
+  --python <script export_glb.py>
+```
+Produce `models/soma_character.glb` (~mallas unidas por sistema, pesos incluidos).
+
+1. **Package Manager** → añade `com.unity.cloud.gltfast` (glTFast, importador glTF oficial).
+2. Copia `models/soma_character.glb` a `Assets/` — se importa como prefab.
+3. Arrastra el prefab a la escena; crea un GameObject vacío con
+   `Assets/Scripts/SomaCharacter.cs` y asigna `characterRoot` = la instancia del prefab.
+4. Play. El script lee `soma_get_full_state` (32 floats) y conduce:
+   - piernas FK (ángulos del motor), raíz con bob físico real (`pin_z=false`),
+   - cadena espinal `spine_01..04` + `neck_01..02` (contrarrotación, cabeza estable),
+   - brazos en antifase (péndulos físicos ArmRig del motor, `st[31..32]`),
+   - `pulse_root` (late con la bomba, `st[21]`), `breath_L/R` (fuelle, `st[23]`),
+   - contactos por pie (`st[25..26]`), CoM (`st[27..29]`) en el HUD.
+
+### Estado completo (v1, 36 floats — `soma_full_state_size()`)
+| idx | contenido |
+|-----|-----------|
+| 0..3 | hipL kneeL hipR kneeR (rad) |
+| 4..8 | X Y heading bob speed |
+| 9..12 | grfL grfR hipHeight walking |
+| 13..20 | activaciones de actuadores (4 por pierna) |
+| 21..24 | pulso (0..1) · presión norm. · respiración (0..1) · tasa fuelle |
+| 25..26 | contacto pie L/R |
+| 27..29 | centro de masa x y z |
+| 30 | demanda |
+| 31..32 | hombro L/R (rad, péndulos ArmRig físicos) |
+| 33..35 | reservado |
 
 ## Nota
 

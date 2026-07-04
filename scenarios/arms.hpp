@@ -29,7 +29,11 @@ struct ArmRig {
     AttachPoint front_at, back_at;
 
     ArmRig() {
-        for (SpringActuator* m : {&front, &back}) { m->f_max = 120; m->l_opt = 0.18; }
+        // l_opt = longitud REAL en reposo: la inserción es relativa al CENTRO del
+        // húmero (z −0.16), no al hombro ⇒ el cable mide ~0.295 m colgando. Con
+        // l_opt corto ambos antagonistas quedaban en estiramiento pasivo profundo
+        // y se co-contraían: el hombro quedaba clavado a ±0.06 rad.
+        for (SpringActuator* m : {&front, &back}) { m->f_max = 120; m->l_opt = 0.29; }
         front_at.origin_local = Vec3{0.14, 0, 0.04};  front_at.insertion_local = Vec3{0, 0, -0.06};
         back_at.origin_local  = Vec3{-0.14, 0, 0.04}; back_at.insertion_local  = Vec3{0, 0, -0.06};
         lim.axis = {0,1,0}; lim.ref = {0,0,-1}; lim.local_dir = {0,0,-1}; lim.lo = -1.2; lim.hi = 1.2;
@@ -41,7 +45,8 @@ struct ArmRig {
 
     void step(Real dt, Real target) {
         Real a = angle(), rate = upper.omega.y;
-        Real u = 7.0 * (target - a) - 1.2 * rate;      // PD sobre el ángulo del hombro
+        Real u = 16.0 * (target - a) - 1.6 * rate;     // PD del hombro (16/1.6: sigue
+                                                       // al CPG a ~1.6 Hz sin rezago)
         auto c01 = [](Real x){ return x > 1 ? 1 : (x < 0 ? 0 : x); };
         back.activation  = c01((u > 0 ? u : 0) + 0.02);   // sube el ángulo (adelante)
         front.activation = c01((u < 0 ? -u : 0) + 0.02);

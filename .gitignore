@@ -14,6 +14,7 @@ render/*.jpg
 
 # Modelos pesados de Blender (se regeneran; 300+ MB)
 models/*.blend
+models/*.glb
 render/frames/
 
 # Herramientas / temporales
