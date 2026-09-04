@@ -43,3 +43,6 @@ Thumbs.db
 .vsconfig
 # permitir la DLL dentro del proyecto Unity aunque *.dll esté ignorado arriba:
 !SOMA/Assets/Plugins/soma.dll
+
+# Character model: 143MB, exceeds GitHub's 100MB limit. Regenerate via tools/blender/pipeline/
+SOMA/Assets/Character/*.glb
