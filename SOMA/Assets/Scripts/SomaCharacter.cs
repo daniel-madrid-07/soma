@@ -27,6 +27,13 @@ public class SomaCharacter : MonoBehaviour
 
     public Transform characterRoot;          // instancia del GLB (contiene SOMA_rig)
     public float hipSign = 1f, kneeSign = -1f, headingSign = 1f;
+    public bool autoWalk = false;            // caminar sin teclado (para pruebas)
+    public float faceYaw = 90f;              // giro para que MIRE hacia donde anda
+    public float legGain = 1.5f;             // amplifica la zancada
+    public float kneeGain = 1.25f;           // amplifica la flexión de rodilla
+    public float armGain = 1.7f;             // balanceo de brazos
+    public float elbowGain = 0.5f;           // flexión de codo
+    public bool walkInPlace = false;         // andar sin desplazarse (para revisar)
 
     IntPtr eng;
     float[] st;
@@ -77,7 +84,7 @@ public class SomaCharacter : MonoBehaviour
     void Update()
     {
         if (eng == IntPtr.Zero) return;
-        bool walk = Input.GetKey(KeyCode.W) && !Input.GetKey(KeyCode.Space);
+        bool walk = (autoWalk || Input.GetKey(KeyCode.W)) && !Input.GetKey(KeyCode.Space);
         float effort = Input.GetKey(KeyCode.LeftShift) ? 1.5f : 1.0f;
         float steer = (Input.GetKey(KeyCode.A) ? 1f : 0f) - (Input.GetKey(KeyCode.D) ? 1f : 0f);
         soma_set_intention(eng, walk ? 1 : 0, effort, steer);
@@ -88,21 +95,20 @@ public class SomaCharacter : MonoBehaviour
         float X = st[4], Y = st[5], heading = st[6], bob = st[7];
 
         // raíz: el motor camina en su plano; Unity es Y-up
-        characterRoot.position = new Vector3(X, bob, Y);
-        characterRoot.rotation = Quaternion.Euler(0, -headingSign * heading * Mathf.Rad2Deg, 0);
+        characterRoot.position = walkInPlace ? new Vector3(0, bob, 0) : new Vector3(X, bob, Y);
+        characterRoot.rotation = Quaternion.Euler(0, -headingSign * heading * Mathf.Rad2Deg + faceYaw, 0);
 
-        // piernas (FK del motor)
-        SetBend("thigh_L", hipSign * hipL);
-        SetBend("thigh_R", hipSign * hipR);
-        SetBend("calf_L", kneeSign * Mathf.Max(0, -kneeL));
-        SetBend("calf_R", kneeSign * Mathf.Max(0, -kneeR));
+        // piernas (FK del motor) — amplificado para una zancada natural
+        SetBend("thigh_L", hipSign * hipL * legGain);
+        SetBend("thigh_R", hipSign * hipR * legGain);
+        SetBend("calf_L", kneeSign * Mathf.Max(0, -kneeL) * kneeGain);
+        SetBend("calf_R", kneeSign * Mathf.Max(0, -kneeR) * kneeGain);
 
-        // brazos: péndulos físicos del motor (ArmRig, st[31..32]) — emergentes
-        float armL = st[31], armR = st[32];
-        SetBend("upperarm_L", hipSign * armL);
-        SetBend("upperarm_R", hipSign * armR);
-        SetBend("lowerarm_L", hipSign * Mathf.Max(0, armL) * 0.6f);
-        SetBend("lowerarm_R", hipSign * Mathf.Max(0, armR) * 0.6f);
+        // brazos: balanceo CONTRALATERAL (brazo opuesto a la pierna) desde la cadera
+        SetBend("upperarm_L", hipSign * hipR * armGain);
+        SetBend("upperarm_R", hipSign * hipL * armGain);
+        SetBend("lowerarm_L", -elbowGain * (0.4f + Mathf.Max(0, hipSign * hipR)));
+        SetBend("lowerarm_R", -elbowGain * (0.4f + Mathf.Max(0, hipSign * hipL)));
 
         // tronco: contrarrotación ligera repartida por la cadena (regla de Blender:
         // cada spine_xx toma 1/4 del guía). Aquí el guía es la contrarrotación.
